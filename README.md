@@ -2,4 +2,8 @@
 
 
 GUI -
-Tkinter
+PyQt6
+Install
+```
+pip install PyQt6
+```
