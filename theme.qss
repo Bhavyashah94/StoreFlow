@@ -1,0 +1,48 @@
+/* theme.qss */
+
+QWidget {
+    background-color: white;
+    color: black;
+    font-size: 14px;
+}
+
+QFrame#top_bar {
+    background-color: #2B2D42;
+}
+
+QFrame#side_bar {
+    background-color: #8D99AE;
+}
+
+QPushButton#sidebar_button {
+    background-color: #8D99AE;
+    color: #2B2D42;
+    border: none;
+}
+QPushButton#sidebar_button:hover {
+    background-color: #D90429;
+    color: #EDF2F4;
+    border: none;
+}
+
+QPushButton {
+    background-color: lightgrey;
+    border: none;
+    font-size: 14px;
+    padding: 8px;
+}
+
+QPushButton:hover {
+    background-color: #D90429;
+    color: white;
+}
+
+QPushButton#toggle_button {
+    background-color: #2B2D42;
+    color: #EDF2F4;
+    border: none;
+}
+
+QPushButton#toggle_button:hover {
+    background-color: #8D99AE;
+}
