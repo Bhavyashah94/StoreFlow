@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFrame, QLabel, QStackedWidget
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFrame, QLabel, QStackedWidget, QMessageBox
 from PyQt6.QtCore import Qt, QEvent
 import sys
 from functools import partial
@@ -69,12 +69,8 @@ class StoreFlowUI(QWidget):
             btn = QPushButton(name)
             btn.setObjectName("sidebar_button")
 
-            # Use lambda directly inside connect()
-            btn.clicked.connect(lambda _, i=index, n=name: (
-                self.panel_manager.setCurrentIndex(i), 
-                self.toggle_sidebar(force_close=True), 
-                self.top_bar_title.setText(f"StoreFlow: {n}")
-            ))
+            # Use lambda for dynamic binding
+            btn.clicked.connect(lambda _, i=index, n=name: self.switch_panel(i, n))
 
             self.sidebar_layout.addWidget(btn)
 
@@ -133,7 +129,27 @@ class StoreFlowUI(QWidget):
             else:
                 self.close()  # Close the app
             return True
-        return super().eventFilter(obj, event)
+        return super().eventFilter(obj, event)\
+
+    def switch_panel(self, index, name):
+        """Handles panel switching with cart clearance confirmation."""
+        if self.panel_manager.currentIndex() == 0:  # If switching from Cart
+            if self.cart_panel.cart_table.table.rowCount() > 0:  # Check if cart has items
+                confirm = QMessageBox(self)
+                confirm.setWindowTitle("Confirm Clear")
+                confirm.setText("You have items in your cart. Clear the cart before switching?")
+                confirm.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+
+                if confirm.exec() == QMessageBox.StandardButton.Yes:
+                    self.cart_panel.cart_table.table.setRowCount(0)  # Clear cart
+                    self.cart_panel.cart_table.update_row_numbers()
+                else:
+                    return  # Cancel switch if user selects No
+
+        # Proceed with panel switch
+        self.panel_manager.setCurrentIndex(index)
+        self.toggle_sidebar(force_close=True)
+        self.top_bar_title.setText(f"StoreFlow: {name}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

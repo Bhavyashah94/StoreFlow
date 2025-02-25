@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QApplication
+    QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QApplication, QMessageBox
 )
 from PyQt6.QtCore import Qt
 
@@ -73,9 +73,19 @@ class CartTable(QWidget):
         self.update_row_numbers()  # Refresh numbering
 
     def clear_cart(self):
-        """Clears all items from the cart."""
-        self.table.setRowCount(0)  # Remove all rows
-        self.update_row_numbers()  # Refresh numbering
+        if self.table.rowCount() == 0:
+            return
+        
+        confirmation = QMessageBox(self)
+        confirmation.setWindowTitle("Clear Cart")
+        confirmation.setText("Are you sure you want to clear the cart?")
+        confirmation.setIcon(QMessageBox.Icon.Question)
+        confirmation.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        confirmation.setDefaultButton(QMessageBox.StandardButton.No)
+
+        if confirmation.exec() == QMessageBox.StandardButton.Yes:
+            self.table.setRowCount(0)
+            self.update_row_numbers()
 
 
 # Testing the Cart Table
