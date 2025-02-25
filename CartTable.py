@@ -10,6 +10,8 @@ class CartTable(QWidget):
 
         # Main layout
         self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
 
         # Cart Table (6 columns: 1 for fake vertical header, 5 for actual data)
         self.table = QTableWidget(0, 6)  # Extra column for row numbering
@@ -68,6 +70,11 @@ class CartTable(QWidget):
         for row in sorted(selected_rows, reverse=True):  # Remove from bottom to top
             self.table.removeRow(row)
 
+        self.update_row_numbers()  # Refresh numbering
+
+    def clear_cart(self):
+        """Clears all items from the cart."""
+        self.table.setRowCount(0)  # Remove all rows
         self.update_row_numbers()  # Refresh numbering
 
 
