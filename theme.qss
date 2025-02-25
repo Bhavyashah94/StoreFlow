@@ -46,3 +46,83 @@ QPushButton#toggle_button {
 QPushButton#toggle_button:hover {
     background-color: #8D99AE;
 }
+
+QFrame#cart_panel {
+    background-color: white;
+}
+
+QFrame#cart_list {
+    background-color: #F8F9FA;
+    border-right: 2px solid #8D99AE;
+}
+
+QScrollArea#cart_scroll_area {
+    border: none;
+    background-color: transparent;
+}
+
+QLabel#cart_item {
+    padding: 10px;
+    background-color: white;
+    border: 1px solid #8D99AE;
+    border-radius: 5px;
+}
+
+QLabel#cart_item:hover {
+    background-color: #D90429;
+    color: white;
+}
+
+QLabel#top_bar_label {
+    background-color: #2B2D42;
+    color: #EDF2F4;
+    border: none;
+    font-size: large;
+    padding: 10px;
+    font-style: Bold;
+    font-family: Roboto;
+}
+
+QFrame#cart_buttons {
+    background-color: white;
+    border-top: 2px solid #8D99AE;
+    padding: 10px;
+}
+
+QPushButton#clear_cart_btn, QPushButton#hold_cart_btn {
+    background-color: #D90429;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+}
+
+QPushButton#clear_cart_btn:hover, QPushButton#hold_cart_btn:hover {
+    background-color: #8D99AE;
+    color: white;
+}
+
+QFrame#cart_summary {
+    background-color: #EDF2F4;
+    padding: 10px;
+}
+
+#cart_panel {
+    background-color: #f8f8f8;
+}
+
+#cart_table {
+    border: 1px solid #ccc;
+    background-color: white;
+}
+
+#table_header {
+    font-weight: bold;
+    background-color: #e0e0e0;
+    padding: 5px;
+    border-bottom: 2px solid #aaa;
+}
+
+#table_cell {
+    padding: 5px;
+}
