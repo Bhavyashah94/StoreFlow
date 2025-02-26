@@ -89,6 +89,10 @@ QFrame#cart_buttons {
     padding: 10px;
 }
 
+QFrame#inventory_list {
+    background-color: #005bb6;
+}
+
 QPushButton#clear_cart_btn, QPushButton#hold_cart_btn {
     background-color: #D90429;
     color: white;

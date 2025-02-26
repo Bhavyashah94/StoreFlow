@@ -1,8 +1,9 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFrame, QLabel, QStackedWidget, QMessageBox
 from PyQt6.QtCore import Qt, QEvent
 import sys
-from functools import partial
+
 from cartpanel import CartPanel
+from InventoryPanel import InventoryPanel
 
 class StoreFlowUI(QWidget):
     def __init__(self):
@@ -51,7 +52,7 @@ class StoreFlowUI(QWidget):
 
         # Create Panels
         self.cart_panel = CartPanel(self)
-        self.inventory_panel = QLabel("Inventory Panel", self)
+        self.inventory_panel = InventoryPanel(self)
         self.sales_panel = QLabel("Sales Panel", self)
         self.settings_panel = QLabel("Settings Panel", self)
 
