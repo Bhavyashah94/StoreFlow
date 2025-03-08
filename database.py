@@ -7,7 +7,7 @@ class Database:
             self.conn = mysql.connector.connect(
                 host="localhost",
                 user="root",  # Change this
-                password="Bhavya7645@"  # Change this
+                password="Ohio6969"  # Change this
             )
             self.cursor = self.conn.cursor()
             print("✅ Database connection established.")
