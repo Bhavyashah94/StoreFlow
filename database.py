@@ -1,7 +1,5 @@
 import mysql.connector
 
-import mysql.connector
-
 class Database:
     def __init__(self):
         """Initialize database connection and create database/tables if needed."""
@@ -40,27 +38,42 @@ class Database:
             print(f"❌ Database connection failed: {e}")
             self.conn = None  # Ensure connection object doesn't exist if failed
 
-    def add_item(self, name, gtin, unit, selling_price, mrp, cost_price, opening_stock, reorder_point):
-        """Adds new Item to the Inventory"""
+    def add_item(
+        self, 
+        name: str, 
+        gtin: str, 
+        unit: str, 
+        selling_price: float, 
+        mrp: float, 
+        cost_price: float, 
+        stock: float, 
+        reorder_point: float
+    ) -> bool:
+        """Adds a new item to the inventory."""
+        if not self.conn:
+            print("❌ Error: No database connection.")
+            return False
+
         try:
             query = """
                 INSERT INTO inventory (name, gtin, unit_of_measurement, selling_price, mrp, cost_price, stock, reorder_point) 
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
-            values = (name, gtin, unit, selling_price, mrp, cost_price, opening_stock, reorder_point)
+            values = (name, gtin, unit, selling_price, mrp, cost_price, stock, reorder_point)
             self.cursor.execute(query, values)
             self.conn.commit()
             print(f"✅ Item '{name}' added successfully!")
+            return True  # Success
         except mysql.connector.IntegrityError as e:
-            print(f"❌ Error: {e}")  # Handles duplicate name/GTIN errors
+            print(f"❌ Integrity Error: {e}")  # Handles duplicate name/GTIN errors
+            return False
         except Exception as e:
-            print(f"❌ Unexpected error: {e}")
+            print(f"❌ Unexpected Error: {e}")
+            return False
 
-
-# Initialize the database
+# Initialize database and add a test item
 db = Database()
-print("Database and table initialized successfully!")
+db.add_item("Wheat Flour", "1234567890123", "kg", 50.00, 55.00, 40.00, 100.500, 10.000)
 
-db.add_item("cheese","1234567891234","kg",50,50,40,20,10)
 
 
