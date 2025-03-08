@@ -40,6 +40,7 @@ class CartTable(QWidget):
         self.add_cart_item("Apple", 2, "$3.00", "$0.50", "$5.50")
         self.add_cart_item("Apple", 2, "$3.00", "$0.50", "$5.50")
         self.add_cart_item("Banana", 5, "$1.50", "$0.00", "$7.50")
+        self.add_cart_item("Skibidi Toilet", 1, "$10000.00", "$0.00", "$10000.00")
 
 
     def update_row_numbers(self):
