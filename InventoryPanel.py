@@ -34,7 +34,7 @@ class AddNewInventoryPanel(QWidget):
         self.name_input = QLineEdit()
         self.name_input.setValidator(QRegularExpressionValidator(QRegularExpression(r"^[^\s].*")))
 
-        self.gstn_label = QLabel("GSTN Number:")
+        self.gstn_label = QLabel("GITN Number:")
         self.gstn_label.setFixedWidth(label_width)
         self.gstn_input = QLineEdit()
         self.gstn_input.setValidator(QRegularExpressionValidator(QRegularExpression("^[0-9]{13}$")))

@@ -1,5 +1,7 @@
 import mysql.connector
 
+import mysql.connector
+
 class Database:
     def __init__(self):
         """Initialize database connection and create database/tables if needed."""
@@ -16,32 +18,42 @@ class Database:
 
         # Ensure items table exists
         self.cursor.execute("""
-            CREATE TABLE IF NOT EXISTS items (
+            CREATE TABLE IF NOT EXISTS inventory (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255) NOT NULL UNIQUE,
-                price DECIMAL(10,2) DEFAULT 0.00,
-                discount DECIMAL(10,2) DEFAULT 0.00,
-                stock INT DEFAULT 0
+                gtin CHAR(13) NOT NULL UNIQUE,
+                unit_of_measurement VARCHAR(50),
+                selling_price DECIMAL(10,2) CHECK (selling_price >= 0),
+                mrp DECIMAL(10,2) CHECK (mrp >= 0),
+                cost_price DECIMAL(10,2) CHECK (cost_price >= 0),
+                stock DECIMAL(10,3) CHECK (stock >= 0),  -- Fixed column name
+                reorder_point DECIMAL(10,3) CHECK (reorder_point >= 0)
             )
         """)
 
         self.conn.commit()
 
-    def fetch_items(self, search_query=""):
-        """Fetch items matching the search query."""
-        self.cursor.execute("SELECT * FROM items WHERE name LIKE %s LIMIT 20", (f"%{search_query}%",))
-        return self.cursor.fetchall()
-
-    def add_item(self, name, price, discount, stock):
-        """Add a new item to the database."""
+    def add_item(self, name, gtin, unit, selling_price, mrp, cost_price, opening_stock, reorder_point):
+        """Adds new Item to the Inventory"""
         try:
-            self.cursor.execute("INSERT INTO items (name, price, discount, stock) VALUES (%s, %s, %s, %s)",
-                                (name, price, discount, stock))
+            query = """
+                INSERT INTO inventory (name, gtin, unit_of_measurement, selling_price, mrp, cost_price, stock, reorder_point) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            values = (name, gtin, unit, selling_price, mrp, cost_price, opening_stock, reorder_point)
+            self.cursor.execute(query, values)
             self.conn.commit()
-        except mysql.connector.Error as e:
-            print(f"Error adding item: {e}")
+            print(f"✅ Item '{name}' added successfully!")
+        except mysql.connector.IntegrityError as e:
+            print(f"❌ Error: {e}")  # Handles duplicate name/GTIN errors
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")
 
-    def close(self):
-        """Close the database connection."""
-        self.cursor.close()
-        self.conn.close()
+
+# Initialize the database
+db = Database()
+print("Database and table initialized successfully!")
+
+db.add_item("cheese","1234567891234","kg",50,50,40,20,10)
+
+
