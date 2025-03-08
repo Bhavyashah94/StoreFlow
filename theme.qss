@@ -130,3 +130,11 @@ QFrame#cart_summary {
 #table_cell {
     padding: 5px;
 }
+
+QLineEdit {
+    background-color: white;
+    color: black;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 4px;
+}

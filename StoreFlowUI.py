@@ -34,6 +34,7 @@ class StoreFlowUI(QWidget):
         self.overlay.hide()
         self.overlay.mousePressEvent = lambda event: self.toggle_sidebar(force_close=True)  # Close on click
 
+
         # Sidebar (Floating)
         self.sidebar = QFrame(self)
         self.sidebar.setObjectName("side_bar")
