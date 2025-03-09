@@ -1,9 +1,12 @@
 from PyQt6.QtWidgets import (QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFrame,
-                            QLabel, QLineEdit, QFormLayout, QStackedWidget, QGridLayout, QComboBox)
-from PyQt6.QtCore import Qt, QRegularExpression
+                            QLabel, QLineEdit, QFormLayout, QStackedWidget, QGridLayout, QComboBox, QProgressDialog)
+from PyQt6.QtCore import Qt, QRegularExpression, QThread, pyqtSlot
+
 from PyQt6.QtGui import QRegularExpressionValidator
-from NewItemPanel import NewItemPanel
-from database import DatabaseHandler
+from database import Database
+
+
+
 
 class AddNewInventoryPanel(QWidget):
     def __init__(self, parent=None):
@@ -147,9 +150,11 @@ class AddNewInventoryPanel(QWidget):
         self.setLayout(layout)
 
     def add_item_to_database(self):
-        db = DatabaseHandler.get_instance()
-        temp = db.is_name_unique(self.name_input.text())
-        print(temp)
+            db = Database()
+            is_unique = db.is_name_unique(self.name_input.text())
+            print(f"✅ Database result received: {is_unique}")
+
+
 
 class InventoryPanel(QWidget):
     def __init__(self, parent=None):
