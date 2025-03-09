@@ -20,7 +20,7 @@ class Database:
             self.cursor.execute("""
                 CREATE TABLE IF NOT EXISTS inventory (
                     id INT AUTO_INCREMENT PRIMARY KEY,
-                    name VARCHAR(255) NOT NULL UNIQUE,
+                    name VARCHAR(255) NOT NULL UNIQUE, 
                     gtin CHAR(13) NOT NULL UNIQUE,
                     unit_of_measurement VARCHAR(50),
                     selling_price DECIMAL(10,2) CHECK (selling_price >= 0),
@@ -37,6 +37,13 @@ class Database:
         except mysql.connector.Error as e:
             print(f"❌ Database connection failed: {e}")
             self.conn = None  # Ensure connection object doesn't exist if failed
+
+    def close(self):
+        """Closes the database connection."""
+        if self.conn:
+            self.cursor.close()
+            self.conn.close()
+            print("✅ Database connection closed.")
 
     def add_item(
         self, 
@@ -70,10 +77,31 @@ class Database:
         except Exception as e:
             print(f"❌ Unexpected Error: {e}")
             return False
+        
+    def is_name_unique(self, name: str) -> bool:
+        """Checks if an item name is unique in the inventory."""
+        if not self.conn:
+            print("❌ Error: No database connection.")
+            return False
 
-# Initialize database and add a test item
-db = Database()
-db.add_item("Wheat Flour", "1234567890123", "kg", 50.00, 55.00, 40.00, 100.500, 10.000)
+        try:
+            query = "SELECT COUNT(*) FROM inventory WHERE name = %s"
+            self.cursor.execute(query, (name,))
+            count = self.cursor.fetchone()[0]
+            return count == 0  # True if name is unique
+        except mysql.connector.Error as e:
+            print(f"❌ Database Error: {e}")
+            return False
+
+class DatabaseHandler:
+    _instance = None  # Class variable to hold the single instance
+
+    @staticmethod
+    def get_instance():
+        """Returns a singleton instance of the Database class."""
+        if DatabaseHandler._instance is None:
+            DatabaseHandler._instance = Database()
+        return DatabaseHandler._instance
 
 
 

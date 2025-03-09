@@ -2,8 +2,8 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QPushButton, QVBoxLayout, QH
                             QLabel, QLineEdit, QFormLayout, QStackedWidget, QGridLayout, QComboBox)
 from PyQt6.QtCore import Qt, QRegularExpression
 from PyQt6.QtGui import QRegularExpressionValidator
-
-
+from NewItemPanel import NewItemPanel
+from database import DatabaseHandler
 
 class AddNewInventoryPanel(QWidget):
     def __init__(self, parent=None):
@@ -43,12 +43,10 @@ class AddNewInventoryPanel(QWidget):
         self.unit_label.setFixedWidth(label_width)
         self.unit_input = QComboBox()
         self.unit_input.setEditable(False)
-        self.unit_input.setPlaceholderText("Select a Unit")
+        self.unit_input.setPlaceholderText("Select a Unit")  
         self.unit_input.addItem("Kg")
         self.unit_input.addItem("gms")
         self.unit_input.addItem("Pcs")
-
-        
 
         self.basic_info_fields.addWidget(self.name_label, 0, 0)
         self.basic_info_fields.addWidget(self.name_input, 0, 1)
@@ -76,14 +74,17 @@ class AddNewInventoryPanel(QWidget):
         self.selling_price_label = QLabel("Selling Price:")
         self.selling_price_label.setFixedWidth(label_width)
         self.selling_price_input = QLineEdit()
+        self.selling_price_input.setValidator(QRegularExpressionValidator(QRegularExpression(r"^\d+(\.\d{1,2})?$")))
 
         self.mrp_label = QLabel("MRP:")
         self.mrp_label.setFixedWidth(label_width)
         self.mrp_input = QLineEdit()
+        self.mrp_input.setValidator(QRegularExpressionValidator(QRegularExpression(r"^\d+(\.\d{1,2})?$")))
 
         self.cost_price_label = QLabel("Cost Price:")
         self.cost_price_label.setFixedWidth(label_width)
         self.cost_price_input = QLineEdit()
+        self.cost_price_input.setValidator(QRegularExpressionValidator(QRegularExpression(r"^\d+(\.\d{1,2})?$")))
 
         self.pricing_fields.addWidget(self.selling_price_label, 0, 0)
         self.pricing_fields.addWidget(self.selling_price_input, 0, 1)
@@ -109,10 +110,12 @@ class AddNewInventoryPanel(QWidget):
         self.opening_stock_label = QLabel("Opening Stock:")
         self.opening_stock_label.setFixedWidth(label_width)
         self.opening_stock_input = QLineEdit()
+        self.opening_stock_input.setValidator(QRegularExpressionValidator(QRegularExpression(r"^\d+(\.\d{1,3})?$")))
 
         self.reorder_point_label = QLabel("Reorder Point:")
         self.reorder_point_label.setFixedWidth(label_width)
         self.reorder_point_input = QLineEdit()
+        self.reorder_point_input.setValidator(QRegularExpressionValidator(QRegularExpression(r"^\d+(\.\d{1,3})?$")))
 
         self.stock_fields.addWidget(self.opening_stock_label, 0, 0)
         self.stock_fields.addWidget(self.opening_stock_input, 0, 1)
@@ -124,7 +127,10 @@ class AddNewInventoryPanel(QWidget):
 
         # Buttons
         button_layout = QHBoxLayout()
+
         self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self.add_item_to_database)
+
         self.cancel_button = QPushButton("Cancel")
 
         button_layout.addStretch()
@@ -140,6 +146,10 @@ class AddNewInventoryPanel(QWidget):
 
         self.setLayout(layout)
 
+    def add_item_to_database(self):
+        db = DatabaseHandler.get_instance()
+        temp = db.is_name_unique(self.name_input.text())
+        print(temp)
 
 class InventoryPanel(QWidget):
     def __init__(self, parent=None):
@@ -202,7 +212,3 @@ class InventoryPanel(QWidget):
         self.layout.addWidget(self.inventory_list)
         self.layout.addWidget(self.inventory_info)
 
-
-
-        
-        
