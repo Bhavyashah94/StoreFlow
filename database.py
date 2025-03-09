@@ -1,9 +1,13 @@
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery
+from PyQt6.QtCore import Qt
 
 class Database:
     def __init__(self):
-        """Initialize database connection and create database/tables if needed."""
-        self.db = QSqlDatabase.addDatabase("QMYSQL")  # Use QSqlDatabase
+        """Ensure database exists and establish connection."""
+        self.ensure_database()
+
+        # Initialize connection
+        self.db = QSqlDatabase.addDatabase("QMYSQL")
         self.db.setHostName("localhost")
         self.db.setUserName("root")
         self.db.setPassword("Bhavya7645@")
@@ -14,11 +18,26 @@ class Database:
             return
 
         print("✅ Database connection established.")
-        
-        db = QSqlDatabase.database()
-        print("Database driver in use:", db.driverName())
+        print("Database driver in use:", self.db.driverName())
 
         self.create_table()
+
+    def ensure_database(self):
+        """Ensures the 'storeflow' database exists before connecting."""
+        temp_db = QSqlDatabase.addDatabase("QMYSQL", "TempConnection")
+        temp_db.setHostName("localhost")
+        temp_db.setUserName("root")
+        temp_db.setPassword("Bhavya7645@")
+
+        if not temp_db.open():
+            print(f"❌ Cannot connect to MySQL server: {temp_db.lastError().text()}")
+            return
+        
+        query = QSqlQuery(temp_db)
+        query.exec("CREATE DATABASE IF NOT EXISTS storeflow")
+
+        temp_db.close()
+        QSqlDatabase.removeDatabase("TempConnection")
 
     def create_table(self):
         """Creates inventory table if it doesn't exist."""
@@ -79,4 +98,3 @@ class Database:
             return query.value(0) == 0  # True if name is unique
 
         return False
-
