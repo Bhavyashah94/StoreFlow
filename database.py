@@ -84,7 +84,7 @@ class Database:
         print(f"✅ Item '{name}' added successfully!")
         return True
 
-    def is_name_unique(self, name):
+    def is_name_unique(self, name :str)->bool:
         """Checks if an item name is unique in the inventory."""
         query = QSqlQuery()
         query.prepare("SELECT COUNT(*) FROM inventory WHERE name = :name")
@@ -96,5 +96,20 @@ class Database:
 
         if query.next():
             return query.value(0) == 0  # True if name is unique
+
+        return False
+    
+    def is_gtin_unique(self, gtin :str)->bool:
+        """Checks if an item EAN is unique in the inventory."""
+        query = QSqlQuery()
+        query.prepare("SELECT COUNT(*) FROM inventory WHERE gtin = :gtin")
+        query.bindValue(":gtin", gtin)
+
+        if not query.exec():
+            print(f"❌ Query error: {query.lastError().text()}")
+            return False
+
+        if query.next():
+            return query.value(0) == 0  # True if gtin is unique
 
         return False

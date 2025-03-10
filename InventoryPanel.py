@@ -37,7 +37,7 @@ class AddNewInventoryPanel(QWidget):
         self.name_input = QLineEdit()
         self.name_input.setValidator(QRegularExpressionValidator(QRegularExpression(r"^[^\s].*")))
 
-        self.gstn_label = QLabel("GITN Number:")
+        self.gstn_label = QLabel("gtin Number:")
         self.gstn_label.setFixedWidth(label_width)
         self.gstn_input = QLineEdit()
         self.gstn_input.setValidator(QRegularExpressionValidator(QRegularExpression("^[0-9]{13}$")))
@@ -151,10 +151,22 @@ class AddNewInventoryPanel(QWidget):
 
     def add_item_to_database(self):
             db = Database()
-            is_unique = db.is_name_unique(self.name_input.text())
-            print(f"✅ Database result received: {is_unique}")
+            errorString = ""
+            is_name_unique = db.is_name_unique(self.name_input.text())
+            name_text = self.name_input.text()
+            is_gtin_unique = db.is_gtin_unique(self.gstn_input.text())
+            gtin_text = self.gstn_input.text()
+            if not is_name_unique:
+                 errorString += f"{name_text} is already in the database. \n"
 
+            if not is_gtin_unique:
+                 errorString += f"{gtin_text} is already in the database. \n"
 
+                
+
+            
+                
+        
 
 class InventoryPanel(QWidget):
     def __init__(self, parent=None):
