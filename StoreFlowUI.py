@@ -1,9 +1,13 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFrame, QLabel, QStackedWidget, QMessageBox
 from PyQt6.QtCore import Qt, QEvent
+from PyQt6.QtGui import QGuiApplication, QPalette, QStyleHints
 import sys
 
 from cartpanel import CartPanel
 from InventoryPanel import InventoryPanel
+
+
+# Start your main window
 
 class StoreFlowUI(QWidget):
     def __init__(self):
@@ -63,8 +67,6 @@ class StoreFlowUI(QWidget):
         self.panel_manager.addWidget(self.sales_panel)
         self.panel_manager.addWidget(self.settings_panel)
 
-        
-
         # Sidebar Buttons
         button_names = [("Cart", 0), ("Inventory", 1), ("Sales", 2), ("Settings", 3)]
         for name, index in button_names:
@@ -116,8 +118,6 @@ class StoreFlowUI(QWidget):
             self.sidebar.raise_()
             self.sidebar_visible = True
 
-
-
     def load_stylesheet(self, filename):
         """Loads QSS stylesheet."""
         with open(filename, "r") as file:
@@ -131,7 +131,7 @@ class StoreFlowUI(QWidget):
             else:
                 self.close()  # Close the app
             return True
-        return super().eventFilter(obj, event)\
+        return super().eventFilter(obj, event)
 
     def switch_panel(self, index, name):
         """Handles panel switching with cart clearance confirmation."""
@@ -158,3 +158,5 @@ if __name__ == "__main__":
     window = StoreFlowUI()
     window.show()
     sys.exit(app.exec())
+
+

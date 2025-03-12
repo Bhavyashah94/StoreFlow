@@ -1,10 +1,10 @@
 from PyQt6.QtWidgets import (QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFrame,
-                            QLabel, QLineEdit, QFormLayout, QStackedWidget, QGridLayout, QComboBox, QProgressDialog)
+                            QLabel, QLineEdit, QFormLayout, QStackedWidget, QGridLayout, QComboBox,
+                            QProgressDialog, QMessageBox, QScrollArea, QSizePolicy)
 from PyQt6.QtCore import Qt, QRegularExpression, QThread, pyqtSlot
-
 from PyQt6.QtGui import QRegularExpressionValidator
 from database import Database
-
+from inventoryItemWidget import InventoryItemWidget
 
 
 
@@ -36,11 +36,13 @@ class AddNewInventoryPanel(QWidget):
         self.name_label.setFixedWidth(label_width)
         self.name_input = QLineEdit()
         self.name_input.setValidator(QRegularExpressionValidator(QRegularExpression(r"^[^\s].*")))
+        self.name_input.setMaxLength(255)
 
-        self.gstn_label = QLabel("gtin Number:")
-        self.gstn_label.setFixedWidth(label_width)
-        self.gstn_input = QLineEdit()
-        self.gstn_input.setValidator(QRegularExpressionValidator(QRegularExpression("^[0-9]{13}$")))
+        self.gtin_label = QLabel("GITN Number:")
+        self.gtin_label.setFixedWidth(label_width)
+        self.gtin_input = QLineEdit()
+        self.gtin_input.setValidator(QRegularExpressionValidator(QRegularExpression("^[0-9]{13}$")))
+        self.gtin_input.setMaxLength(13)
 
         self.unit_label = QLabel("Unit of Measurement:")
         self.unit_label.setFixedWidth(label_width)
@@ -53,8 +55,8 @@ class AddNewInventoryPanel(QWidget):
 
         self.basic_info_fields.addWidget(self.name_label, 0, 0)
         self.basic_info_fields.addWidget(self.name_input, 0, 1)
-        self.basic_info_fields.addWidget(self.gstn_label, 1, 0)
-        self.basic_info_fields.addWidget(self.gstn_input, 1, 1)
+        self.basic_info_fields.addWidget(self.gtin_label, 1, 0)
+        self.basic_info_fields.addWidget(self.gtin_input, 1, 1)
         self.basic_info_fields.addWidget(self.unit_label, 2, 0)
         self.basic_info_fields.addWidget(self.unit_input, 2, 1)
 
@@ -146,27 +148,72 @@ class AddNewInventoryPanel(QWidget):
         layout.addWidget(self.stock_frame)
         layout.addLayout(button_layout)
         layout.addStretch()
-
         self.setLayout(layout)
 
     def add_item_to_database(self):
-            db = Database()
-            errorString = ""
-            is_name_unique = db.is_name_unique(self.name_input.text())
-            name_text = self.name_input.text()
-            is_gtin_unique = db.is_gtin_unique(self.gstn_input.text())
-            gtin_text = self.gstn_input.text()
-            if not is_name_unique:
-                 errorString += f"{name_text} is already in the database. \n"
+        name = self.name_input.text().strip()
+        gtin = self.gtin_input.text().strip()
+        unit = self.unit_input.currentText()
+        selling_price = self.selling_price_input.text().strip()
+        mrp = self.mrp_input.text().strip()
+        cost_price = self.cost_price_input.text().strip()
+        opening_stock = self.opening_stock_input.text().strip() or "0"
+        reorder_point = self.reorder_point_input.text().strip() or "0"
 
-            if not is_gtin_unique:
-                 errorString += f"{gtin_text} is already in the database. \n"
+        # Validate required fields
+        if not name or not unit:
+            QMessageBox.warning(self, "Input Error", "Name and Unit of Measurement are required!")
+            return
 
-                
+        if not mrp or not cost_price:
+            QMessageBox.warning(self, "Input Error", "MRP and Cost Price are required!")
+            return
 
-            
-                
+        # Validate GTIN: If not empty, it must be exactly 13 digits
+        if gtin and (not gtin.isdigit() or len(gtin) != 13):
+            QMessageBox.warning(self, "Input Error", "GTIN must be exactly 13 digits or left empty!")
+            return
+
+        db = Database()
         
+        if not db.is_name_unique(name):
+            QMessageBox.warning(self, "Duplicate Error", "An item with this name already exists!")
+            return
+        
+        if gtin and not db.is_gtin_unique(gtin):
+            QMessageBox.warning(self, "Duplicate Error", "An item with this GTIN number already exists!")
+            return
+
+        # Convert numeric values safely
+        try:
+            mrp = float(mrp)
+            cost_price = float(cost_price)
+            selling_price = float(selling_price) if selling_price else mrp  # Default selling price to MRP
+            opening_stock = float(opening_stock)
+            reorder_point = float(reorder_point)
+        except ValueError:
+            QMessageBox.warning(self, "Input Error", "Please enter valid numbers for pricing and stock fields!")
+            return
+
+        # Insert into database
+        success = db.add_item(name, gtin if gtin else None, unit, selling_price, mrp, cost_price, opening_stock, reorder_point)
+        
+        if success:
+            QMessageBox.information(self, "Success", "Item added successfully!")
+            self.clear_fields()
+        else:
+            QMessageBox.critical(self, "Database Error", "Failed to add the item. Please try again!")
+
+    def clear_fields(self):
+        self.name_input.clear()
+        self.gtin_input.clear()
+        self.unit_input.setCurrentIndex(-1)  # Reset combo box
+        self.selling_price_input.clear()
+        self.mrp_input.clear()
+        self.cost_price_input.clear()
+        self.opening_stock_input.clear()
+        self.reorder_point_input.clear()
+
 
 class InventoryPanel(QWidget):
     def __init__(self, parent=None):
@@ -196,6 +243,7 @@ class InventoryPanel(QWidget):
         #inventory list top bar
         self.inventory_list_topbar = QFrame(self.inventory_list)
         self.inventory_list_topbar.setObjectName("inventory_list_topbar")
+        self.inventory_list_topbar.setFixedHeight(50)
 
         
         #inventory list top bar layout
@@ -208,11 +256,15 @@ class InventoryPanel(QWidget):
         self.inventory_list_search.setObjectName("inventory_list_search")
         self.inventory_list_search.setPlaceholderText("Search Inventory")
 
+        self.inventory_list_search.textChanged.connect(lambda: self.load_inventory_items(self.inventory_list_search.text().strip()))
+
+
         #self.inventory_list_search.textChanged.connect(self.search_inventory)
 
         #inventory list top bar add new
         self.inventory_list_addnew = QPushButton("Add New", self.inventory_list_topbar)
         self.inventory_list_addnew.setObjectName("inventory_list_addnew")
+        self.inventory_list_addnew.clicked.connect(self.show_add_new_panel)
 
         #self.inventory_list_addnew.clicked.connect(self.add_new_inventory)
 
@@ -220,12 +272,74 @@ class InventoryPanel(QWidget):
         self.inventory_list_topbar_layout.addWidget(self.inventory_list_addnew)
 
         self.inventory_layout.addWidget(self.inventory_list_topbar)
-        self.inventory_layout.addStretch()
 
-        # Layout for Inventory Info
-        self.inventory_info.addWidget(AddNewInventoryPanel(self))
-        self.inventory_info.setCurrentIndex(0)
+        # Add New Inventory Panel to StackedWidget
+        self.add_new_inventory_panel = AddNewInventoryPanel(self)
+        self.inventory_info.addWidget(self.add_new_inventory_panel)
 
         self.layout.addWidget(self.inventory_list)
         self.layout.addWidget(self.inventory_info)
+
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setWidgetResizable(True)
+
+        self.inventory_items_container = QWidget()
+        self.inventory_items_layout = QVBoxLayout(self.inventory_items_container)
+        self.inventory_items_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        self.scroll_area.setWidget(self.inventory_items_container)
+
+        self.inventory_layout.addWidget(self.scroll_area)
+
+        self.load_inventory_items()
+
+    def show_add_new_panel(self):
+        self.inventory_info.setCurrentWidget(self.add_new_inventory_panel)
+
+    def load_inventory_items(self, search_query=""):
+        """Loads inventory items into the UI with search filtering."""
+        db = Database()
+        items = db.get_inventory_items(search_query)
+        print(items)
+
+        # Clear existing widgets
+        while self.inventory_items_layout.count():
+            item = self.inventory_items_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        # Add new items
+        for item in items:
+            item_widget = InventoryItemWidget(item)
+            item_widget.right_clicked.connect(self.handle_right_click)
+            item_widget.double_clicked.connect(self.handle_double_click)
+            self.inventory_items_layout.addWidget(item_widget)
+
+
+    def handle_right_click(self, action_data):
+        """Handles right-click actions."""
+        action, item_data = action_data
+
+        if action == "edit":
+            QMessageBox.information(self, "Edit Item", f"Editing {item_data['name']}")
+            # Open edit form here
+        elif action == "delete":
+            confirm = QMessageBox.question(self, "Delete Item", f"Are you sure you want to delete {item_data['name']}?")
+            if confirm == QMessageBox.StandardButton.Yes:
+                db = Database()
+                self.load_inventory_items()  # Reload after deletion
+        elif action == "details":
+            QMessageBox.information(self, "Item Details", f"Showing details for {item_data['name']}")
+
+    def handle_double_click(self, item_data):
+        """Handles double-click actions."""
+        QMessageBox.information(self, "Item Selected", f"You double-clicked on {item_data['name']}")
+
+
+
+    def search_inventory(self):
+        """Filters inventory based on user input."""
+        search_text = self.inventory_list_search.text().strip()
+        self.load_inventory_items(search_text)  # Reload list with search filter
+        
 

@@ -1,9 +1,37 @@
 /* theme.qss */
 
-QWidget {
-    background-color: white;
+
+.QWidget {
+    background-color: rgb(255, 255, 255);
     color: black;
     font-size: 14px;
+}
+
+.QStackedWidget {
+    background-color: rgb(255, 255, 255);
+    color: black;
+    font-size: 14px;
+}
+
+.QFrame {
+    background-color: rgb(12, 249, 0);
+    color: aqua;
+}
+
+.QLabel {
+    color: black;
+}
+
+QWidget#inventoryItem {
+    background-color: #EDF2F4;
+    color: #000000;
+    border-radius: 10px;
+}
+
+QWidget#inventoryItem:hover {
+    background-color: #EF233C;
+    color: #EDF2F4;
+    border: 1px solid lightgray;
 }
 
 QFrame#top_bar {

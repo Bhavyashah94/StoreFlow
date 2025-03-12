@@ -46,7 +46,7 @@ class Database:
             CREATE TABLE IF NOT EXISTS inventory (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255) NOT NULL UNIQUE, 
-                gtin CHAR(13) NOT NULL UNIQUE,
+                gtin CHAR(13) UNIQUE,
                 unit_of_measurement VARCHAR(50),
                 selling_price DECIMAL(10,2) CHECK (selling_price >= 0),
                 mrp DECIMAL(10,2) CHECK (mrp >= 0),
@@ -113,3 +113,37 @@ class Database:
             return query.value(0) == 0  # True if gtin is unique
 
         return False
+    
+    def get_inventory_items(self, search_query=""):
+        """Fetch inventory items from the database, optionally filtering by search_query."""
+        query = QSqlQuery()
+
+        if search_query:
+            query.prepare("""
+                SELECT id, name, gtin, unit_of_measurement, selling_price, mrp, cost_price, stock, reorder_point 
+                FROM inventory 
+                WHERE name LIKE :search_query OR gtin LIKE :search_query
+            """)
+            query.bindValue(":search_query", f"%{search_query}%")
+        else:
+            query.prepare("SELECT id, name, gtin, unit_of_measurement, selling_price, mrp, cost_price, stock, reorder_point FROM inventory")
+
+        query.exec()
+
+        inventory_items = []
+        while query.next():
+            item = {
+                "id": query.value(0),
+                "name": query.value(1),
+                "gtin": query.value(2),
+                "unit": query.value(3),
+                "selling_price": query.value(4),
+                "mrp": query.value(5),
+                "cost_price": query.value(6),
+                "stock": query.value(7),
+                "reorder_point": query.value(8),
+            }
+            inventory_items.append(item)
+
+        return inventory_items
+
