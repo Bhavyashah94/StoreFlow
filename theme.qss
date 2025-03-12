@@ -25,8 +25,8 @@
 }
 
 .QFrame {
-    background-color: rgb(12, 249, 0);
-    color: aqua;
+    background-color: rgb(255, 255, 255);
+    color: rgb(255, 255, 255);
 }
 
 .QLabel {
