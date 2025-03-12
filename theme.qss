@@ -6,6 +6,17 @@
     color: black;
     font-size: 14px;
 }
+.QTableWidget {
+    background-color: rgb(255, 255, 255);
+    color: black;
+    font-size: 14px;
+}
+
+.QMessageBox {
+    background-color: rgb(255, 255, 255);
+    color: black;
+    font-size: 14px;
+}
 
 .QStackedWidget {
     background-color: rgb(255, 255, 255);
@@ -21,6 +32,21 @@
 .QLabel {
     color: black;
 }
+.QComboBox {
+    background-color: rgb(255, 255, 255);
+    color: black;
+    font-size: 14px;
+}
+
+/* Style the dropdown list */
+.QComboBox QAbstractItemView {
+    background-color: rgb(255, 255, 255);
+    color: black;
+    selection-background-color: #0078D7; /* Highlight color */
+    selection-color: white;
+    border: 1px solid gray;
+}
+
 
 QWidget#inventoryItem {
     background-color: #EDF2F4;
@@ -29,7 +55,7 @@ QWidget#inventoryItem {
 }
 
 QWidget#inventoryItem:hover {
-    background-color: #EF233C;
+    background-color: #8D99AE;
     color: #EDF2F4;
     border: 1px solid lightgray;
 }
@@ -55,6 +81,7 @@ QPushButton#sidebar_button:hover {
 
 QPushButton {
     background-color: lightgrey;
+    color: #000000;
     border: none;
     font-size: 14px;
     padding: 8px;

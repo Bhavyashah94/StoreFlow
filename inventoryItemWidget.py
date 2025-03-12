@@ -67,6 +67,10 @@ class InventoryItemWidget(QFrame):
 
     def show_context_menu(self, position):
         menu = QMenu(self)
+        menu.aboutToHide.connect(lambda: self.setProperty("hovered", False))
+        menu.aboutToHide.connect(lambda: self.style().unpolish(self))
+        menu.aboutToHide.connect(lambda: self.style().polish(self))
+        self.update()  # Ensure UI refresh
         edit_action = menu.addAction("Edit Item")
         delete_action = menu.addAction("Delete Item")
         details_action = menu.addAction("View Details")
