@@ -1,15 +1,14 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFrame, QLabel, QStackedWidget, QMessageBox
-from PyQt6.QtCore import Qt, QEvent
-from PyQt6.QtGui import QGuiApplication, QPalette, QStyleHints
+from PyQt6.QtCore import Qt, QEvent, pyqtSignal
+from PyQt6.QtGui import QGuiApplication
 import sys
 
 from cartpanel import CartPanel
 from InventoryPanel import InventoryPanel
 
-
-# Start your main window
-
 class StoreFlowUI(QWidget):
+    overlayClicked = pyqtSignal()  # Signal emitted when overlay is clicked
+
     def __init__(self):
         super().__init__()
 
@@ -36,8 +35,9 @@ class StoreFlowUI(QWidget):
         self.overlay.setObjectName("overlay")
         self.overlay.setStyleSheet("background-color: rgba(0, 0, 0, 100);")  # Semi-transparent
         self.overlay.hide()
-        self.overlay.mousePressEvent = lambda event: self.toggle_sidebar(force_close=True)  # Close on click
 
+        # Capture clicks on overlay
+        self.overlay.mousePressEvent = self.on_overlay_clicked
 
         # Sidebar (Floating)
         self.sidebar = QFrame(self)
@@ -80,7 +80,6 @@ class StoreFlowUI(QWidget):
 
         self.sidebar_layout.addStretch()
 
-
         # Top Bar Layout
         self.top_bar_layout = QHBoxLayout(self.top_bar)
         self.top_bar_layout.setContentsMargins(0, 0, 0, 0)
@@ -97,6 +96,9 @@ class StoreFlowUI(QWidget):
 
         self.setLayout(self.main_layout)
 
+        # connecting Overlay to sidebar
+        self.overlayClicked.connect(lambda: self.toggle_sidebar(True))
+
         # Install event filter to detect Esc key
         app.installEventFilter(self)
 
@@ -104,19 +106,31 @@ class StoreFlowUI(QWidget):
         self.sidebar_visible = False
 
     def toggle_sidebar(self, force_close=False):
-        """Toggles the sidebar overlay"""
+        """Toggles the sidebar and overlay"""
         if self.sidebar_visible or force_close:
             self.sidebar.hide()
-            self.overlay.hide()
+            self.toggle_overlay(False)  # Hide overlay
             self.sidebar_visible = False
         else:
             self.sidebar.setGeometry(0, 50, 200, self.height())  # Ensure correct position
             self.sidebar.show()
-            self.overlay.setGeometry(0, 0, self.width(), self.height())
-            self.overlay.show()
-            self.overlay.raise_()  # 🔥 Ensure overlay is also on top
+            self.toggle_overlay(True)  # Show overlay
             self.sidebar.raise_()
             self.sidebar_visible = True
+
+    def on_overlay_clicked(self, event):
+        """Emits a signal when the overlay is clicked."""
+        self.overlayClicked.emit()
+        self.toggle_overlay(False)  # Hide overlay on click
+
+    def toggle_overlay(self, show=True):
+        """Shows or hides the overlay."""
+        if show:
+            self.overlay.setGeometry(0, 0, self.width(), self.height())
+            self.overlay.show()
+            self.overlay.raise_()
+        else:
+            self.overlay.hide()
 
     def load_stylesheet(self, filename):
         """Loads QSS stylesheet."""
@@ -158,5 +172,3 @@ if __name__ == "__main__":
     window = StoreFlowUI()
     window.show()
     sys.exit(app.exec())
-
-

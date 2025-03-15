@@ -4,8 +4,8 @@ from PyQt6.QtCore import Qt
 from CartTable import CartTable
 
 class CartPanel(QFrame):
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, store_ui):
+        super().__init__()
         self.setObjectName("cart_panel")
 
         # Layout for Cart Panel
@@ -24,7 +24,7 @@ class CartPanel(QFrame):
         self.cart_layout.setSpacing(0)
 
         # ✅ **Cart Table**
-        self.cart_table = CartTable()
+        self.cart_table = CartTable(store_ui)
         self.cart_layout.addWidget(self.cart_table)
 
 

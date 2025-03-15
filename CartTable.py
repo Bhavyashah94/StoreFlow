@@ -1,70 +1,121 @@
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem,
-    QLineEdit, QCompleter, QHeaderView, QApplication
-)
-from PySide6.QtCore import Qt
+from PyQt6.QtWidgets import QLineEdit, QStyledItemDelegate, QVBoxLayout, QTableWidget, QHeaderView, QTableWidgetItem, QWidget
+from PyQt6.QtCore import Qt
+
 
 class CartTable(QWidget):
-    def __init__(self):
+    def __init__(self, store_ui):
         super().__init__()
-
-        # Sample product list for search
-        self.products = {
-            "Chips": 20, "Cookies": 30, "Soda": 50, "Juice": 40, "Candy": 10
-        }
-
-        # Main Layout
+        self.store_ui = store_ui  # Reference to StoreFlowUI
         self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
 
-        # Search Bar with Auto-Suggestions
-        self.search_bar = QLineEdit(self)
-        self.search_bar.setPlaceholderText("Type here to add an item ")
-        self.search_completer = QCompleter(list(self.products.keys()), self)
-        self.search_completer.setCaseSensitivity(Qt.CaseInsensitive)
-        self.search_bar.setCompleter(self.search_completer)
-        self.search_bar.returnPressed.connect(self.add_item_to_cart)
+        # Cart Table
+        self.table = QTableWidget(0, 6)  # Extra column for row numbering
+        self.table.setHorizontalHeaderLabels(["NO", "Item Name", "Quantity", "Price", "Discount", "Total"])
 
-        # Cart Table (6 Columns: No, Name, MRP, Quantity, Discount, Amount)
-        self.cart_table = QTableWidget(0, 6, self)
-        self.cart_table.setHorizontalHeaderLabels(["NO", "Name", "MRP", "Quantity", "Discount", "Amount"])
-        self.cart_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        # Hide vertical header
+        self.table.verticalHeader().setVisible(False)
+
+        # Column Sizing
+        self.table.setColumnWidth(0, 50)  # Row number
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # "Item Name"
+        for i in range(2, 6):
+            self.table.horizontalHeader().setSectionResizeMode(i, QHeaderView.ResizeMode.Fixed)
+            self.table.setColumnWidth(i, 100)
+
+        # Disable editing for non-editable columns
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+
+        self.layout.addWidget(self.table)
+
+        # Add first row with QLineEdit
+        self.add_empty_row()
+
+    def update_row_numbers(self):
+        """Updates the numbering in the first column after adding/removing rows."""
+        for row in range(self.table.rowCount()):
+            item = QTableWidgetItem(str(row + 1))
+            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 0, item)
+
+    def add_empty_row(self):
+        """Adds an empty row and inserts a QLineEdit in the 'Item Name' column."""
+        row_count = self.table.rowCount()
+        self.table.insertRow(row_count)
+
+        # Update row numbers
+        self.update_row_numbers()
+
+        # Add QLineEdit in the 'Item Name' column
+        name_edit = QLineEdit(self)
+        name_edit.setPlaceholderText("Search for an item...")
+        self.table.setCellWidget(row_count, 1, name_edit)
+
+        # Connect signal to show popup
+        name_edit.textEdited.connect(lambda: self.show_add_item_popup(name_edit))
+
+    def show_add_item_popup(self, name_edit):
+        """Shows the Add Item popup when typing in the name field."""
+        self.store_ui.toggle_overlay(True)  # Show overlay
+        self.store_ui.overlayClicked.connect(self.close_popup)
+
+        # Set popup position just below the top bar
+        margin_top = 60  # Adjust based on top bar height
+        screen_width = self.store_ui.width()
         
-        # Add widgets to layout
-        self.layout.addWidget(self.search_bar)
-        self.layout.addWidget(self.cart_table)
+        self.popup = QWidget(self)
 
-    def add_item_to_cart(self):
-        """Add selected product to the cart table."""
-        item_name = self.search_bar.text().strip()
-        if item_name and item_name in self.products:
-            row = self.cart_table.rowCount()
-            self.cart_table.insertRow(row)
+        self.popupSearchBar = QLineEdit()
+        self.popupSearchBar.setText(name_edit.text())
+        name_edit.clear()
 
-            # Auto-fill table columns
-            self.cart_table.setItem(row, 0, QTableWidgetItem(str(row + 1)))  # NO
-            self.cart_table.setItem(row, 1, QTableWidgetItem(item_name))     # Name
-            self.cart_table.setItem(row, 2, QTableWidgetItem(str(self.products[item_name])))  # MRP
-            self.cart_table.setItem(row, 3, QTableWidgetItem("1"))           # Quantity (default 1)
-            self.cart_table.setItem(row, 4, QTableWidgetItem("0"))           # Discount (default 0)
-            self.cart_table.setItem(row, 5, QTableWidgetItem(str(self.products[item_name])))  # Amount
-            
-            self.cart_table.itemChanged.connect(self.update_amount)  # Auto-update amount
-            self.search_bar.clear()  # Clear search bar for next entry
+        self.popupTable = QTableWidget(1, 4)
+        self.popupTable.setHorizontalHeaderLabels(["Item Name", "GTIN", "Quantity", "Price"])
 
-    def update_amount(self):
-        """Recalculate amount when Quantity or Discount changes."""
-        for row in range(self.cart_table.rowCount()):
-            try:
-                mrp = float(self.cart_table.item(row, 2).text())
-                quantity = int(self.cart_table.item(row, 3).text())
-                discount = float(self.cart_table.item(row, 4).text())
-                amount = (mrp - discount) * quantity
-                self.cart_table.setItem(row, 5, QTableWidgetItem(str(amount)))
-            except ValueError:
-                pass  # Ignore invalid input
+        self.popupTable.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.popupTable.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        self.popupTable.setColumnWidth(1, 200)
 
-if __name__ == "__main__":
-    app = QApplication([])
-    window = CartTable()
-    window.show()
-    app.exec()
+        for i in range(2, 4):
+            self.popupTable.horizontalHeader().setSectionResizeMode(i, QHeaderView.ResizeMode.Fixed)
+            self.popupTable.setColumnWidth(i, 100)
+
+        popup_width = 800
+        popup_height = 600
+        popup_x = (screen_width - popup_width) // 2  # Center horizontally
+        popup_y = margin_top  # Position below the top bar
+
+        self.popupLayout = QVBoxLayout(self.popup)
+        self.popupLayout.addWidget(self.popupSearchBar)
+        self.popupLayout.addWidget(self.popupTable)
+
+        self.popup.setGeometry(popup_x, popup_y, popup_width, popup_height)
+        self.popup.setStyleSheet("background-color: white; border-radius: 10px; color:  black;")
+        
+        self.popup.setParent(self.store_ui)  # Ensure it belongs to main window
+        self.popup.setWindowFlags(Qt.WindowType.Popup)  # Helps with stacking
+        self.popup.show()
+        self.popupSearchBar.setFocus()
+        self.popup.raise_()  # 🔥 Ensure it's above the overlay
+
+
+
+    def close_popup(self):
+        """Closes the popup and hides the overlay."""
+        if hasattr(self, "popup"):
+            self.popup.close()
+            del self.popup
+            self.store_ui.toggle_overlay(False)  # Hide overlay
+
+    def remove_selected_item(self):
+        """Removes the selected row and updates numbering."""
+        selected_rows = {index.row() for index in self.table.selectedIndexes()}
+        for row in sorted(selected_rows, reverse=True):
+            self.table.removeRow(row)
+        self.update_row_numbers()
+
+        # If table is empty, add a new QLineEdit in the first row
+        if self.table.rowCount() == 0:
+            self.add_empty_row()
