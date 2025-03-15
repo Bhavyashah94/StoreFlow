@@ -1,95 +1,68 @@
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QApplication, QMessageBox
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem,
+    QLineEdit, QCompleter, QHeaderView, QApplication
 )
-from PyQt6.QtCore import Qt
-
+from PySide6.QtCore import Qt
 
 class CartTable(QWidget):
     def __init__(self):
         super().__init__()
 
-        # Main layout
+        # Sample product list for search
+        self.products = {
+            "Chips": 20, "Cookies": 30, "Soda": 50, "Juice": 40, "Candy": 10
+        }
+
+        # Main Layout
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(0)
 
-        # Cart Table (6 columns: 1 for fake vertical header, 5 for actual data)
-        self.table = QTableWidget(0, 6)  # Extra column for row numbering
-        self.table.setHorizontalHeaderLabels(["NO", "Item Name", "Quantity", "Price", "Discount", "Total"])
+        # Search Bar with Auto-Suggestions
+        self.search_bar = QLineEdit(self)
+        self.search_bar.setPlaceholderText("Type here to add an item ")
+        self.search_completer = QCompleter(list(self.products.keys()), self)
+        self.search_completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.search_bar.setCompleter(self.search_completer)
+        self.search_bar.returnPressed.connect(self.add_item_to_cart)
 
-        # Hide the actual vertical header
-        self.table.verticalHeader().setVisible(False)
-
-        # Style the first column (Fake vertical header)
-        self.table.setColumnWidth(0, 50)  # Adjust width as needed
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
-
-        # Set other column sizes
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # "Item Name"
-        for i in range(2, 6):
-            self.table.horizontalHeader().setSectionResizeMode(i, QHeaderView.ResizeMode.Fixed)
-            self.table.setColumnWidth(i, 100)
-
-        # Disable editing
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-
-        # Add table to layout
-        self.layout.addWidget(self.table)
-
-        # Add test items
-        self.add_cart_item("Apple", 2, "$3.00", "$0.50", "$5.50")
-        self.add_cart_item("Apple", 2, "$3.00", "$0.50", "$5.50")
-        self.add_cart_item("Banana", 5, "$1.50", "$0.00", "$7.50")
-        self.add_cart_item("Skibidi Toilet", 1, "$10000.00", "$0.00", "$10000.00")
-
-
-    def update_row_numbers(self):
-        """Updates the numbering in the first column after adding/removing rows."""
-        for row in range(self.table.rowCount()):
-            item = QTableWidgetItem(str(row + 1))  # Numbering starts from 1
-            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.table.setItem(row, 0, item)
-
-    def add_cart_item(self, item_name, quantity, price, discount, total):
-        """Adds an item to the cart table."""
-        row_count = self.table.rowCount()
-        self.table.insertRow(row_count)
-
-        # Add fake vertical header number
-        self.update_row_numbers()
-
-        # Add actual data
-        self.table.setItem(row_count, 1, QTableWidgetItem(item_name))
-        self.table.setItem(row_count, 2, QTableWidgetItem(str(quantity)))
-        self.table.setItem(row_count, 3, QTableWidgetItem(price))
-        self.table.setItem(row_count, 4, QTableWidgetItem(discount))
-        self.table.setItem(row_count, 5, QTableWidgetItem(total))
-
-    def remove_selected_item(self):
-        """Removes the selected row and updates numbering."""
-        selected_rows = set(index.row() for index in self.table.selectedIndexes())  # Get selected row numbers
-        for row in sorted(selected_rows, reverse=True):  # Remove from bottom to top
-            self.table.removeRow(row)
-
-        self.update_row_numbers()  # Refresh numbering
-
-    def clear_cart(self):
-        if self.table.rowCount() == 0:
-            return
+        # Cart Table (6 Columns: No, Name, MRP, Quantity, Discount, Amount)
+        self.cart_table = QTableWidget(0, 6, self)
+        self.cart_table.setHorizontalHeaderLabels(["NO", "Name", "MRP", "Quantity", "Discount", "Amount"])
+        self.cart_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         
-        confirmation = QMessageBox(self)
-        confirmation.setWindowTitle("Clear Cart")
-        confirmation.setText("Are you sure you want to clear the cart?")
-        confirmation.setIcon(QMessageBox.Icon.Question)
-        confirmation.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        confirmation.setDefaultButton(QMessageBox.StandardButton.No)
+        # Add widgets to layout
+        self.layout.addWidget(self.search_bar)
+        self.layout.addWidget(self.cart_table)
 
-        if confirmation.exec() == QMessageBox.StandardButton.Yes:
-            self.table.setRowCount(0)
-            self.update_row_numbers()
+    def add_item_to_cart(self):
+        """Add selected product to the cart table."""
+        item_name = self.search_bar.text().strip()
+        if item_name and item_name in self.products:
+            row = self.cart_table.rowCount()
+            self.cart_table.insertRow(row)
 
+            # Auto-fill table columns
+            self.cart_table.setItem(row, 0, QTableWidgetItem(str(row + 1)))  # NO
+            self.cart_table.setItem(row, 1, QTableWidgetItem(item_name))     # Name
+            self.cart_table.setItem(row, 2, QTableWidgetItem(str(self.products[item_name])))  # MRP
+            self.cart_table.setItem(row, 3, QTableWidgetItem("1"))           # Quantity (default 1)
+            self.cart_table.setItem(row, 4, QTableWidgetItem("0"))           # Discount (default 0)
+            self.cart_table.setItem(row, 5, QTableWidgetItem(str(self.products[item_name])))  # Amount
+            
+            self.cart_table.itemChanged.connect(self.update_amount)  # Auto-update amount
+            self.search_bar.clear()  # Clear search bar for next entry
 
-# Testing the Cart Table
+    def update_amount(self):
+        """Recalculate amount when Quantity or Discount changes."""
+        for row in range(self.cart_table.rowCount()):
+            try:
+                mrp = float(self.cart_table.item(row, 2).text())
+                quantity = int(self.cart_table.item(row, 3).text())
+                discount = float(self.cart_table.item(row, 4).text())
+                amount = (mrp - discount) * quantity
+                self.cart_table.setItem(row, 5, QTableWidgetItem(str(amount)))
+            except ValueError:
+                pass  # Ignore invalid input
+
 if __name__ == "__main__":
     app = QApplication([])
     window = CartTable()
