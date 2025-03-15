@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFrame,
                             QLabel, QLineEdit, QFormLayout, QStackedWidget, QGridLayout, QComboBox,
                             QProgressDialog, QMessageBox, QScrollArea, QSizePolicy)
-from PyQt6.QtCore import Qt, QRegularExpression, QThread, pyqtSlot
+from PyQt6.QtCore import Qt, QRegularExpression, QThread, pyqtSlot, pyqtSignal
 from PyQt6.QtGui import QRegularExpressionValidator
 from database import Database
 from inventoryItemWidget import InventoryItemWidget
@@ -9,6 +9,7 @@ from inventoryItemWidget import InventoryItemWidget
 
 
 class AddNewInventoryPanel(QWidget):
+    item_added = pyqtSignal()
     def __init__(self, parent=None):
         super().__init__(parent)
         
@@ -201,6 +202,8 @@ class AddNewInventoryPanel(QWidget):
         if success:
             QMessageBox.information(self, "Success", "Item added successfully!")
             self.clear_fields()
+            self.item_added.emit()
+            
         else:
             QMessageBox.critical(self, "Database Error", "Failed to add the item. Please try again!")
 
@@ -275,6 +278,7 @@ class InventoryPanel(QWidget):
 
         # Add New Inventory Panel to StackedWidget
         self.add_new_inventory_panel = AddNewInventoryPanel(self)
+        self.add_new_inventory_panel.item_added.connect(self.load_inventory_items)
         self.inventory_info.addWidget(self.add_new_inventory_panel)
 
         self.layout.addWidget(self.inventory_list)
