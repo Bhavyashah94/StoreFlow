@@ -12,7 +12,6 @@ class InventoryItemWidget(QFrame):
             self.item_data = item_data  # Store item details
             self.setObjectName("inventoryItem")
 
-
             # Top: Item Name
             self.name_label = QLabel(item_data['name'])
             self.name_label.setStyleSheet("font-weight: bold; font-size: 16px;")
