@@ -159,6 +159,7 @@ class StoreFlowUI(QWidget):
                 if confirm.exec() == QMessageBox.StandardButton.Yes:
                     self.cart_panel.cart_table.table.setRowCount(0)  # Clear cart
                     self.cart_panel.cart_table.update_row_numbers()
+                    self.cart_panel.cart_table.add_empty_row()
                 else:
                     return  # Cancel switch if user selects No
 

@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QLineEdit, QStyledItemDelegate, QVBoxLayout, QTableWidget,
                             QHeaderView, QTableWidgetItem, QWidget, QFrame, QHBoxLayout,
-                            QLabel, QScrollArea, QMessageBox)
+                            QLabel, QScrollArea, QMessageBox, QGridLayout, QPushButton)
 from PyQt6.QtCore import Qt, pyqtSignal
 
 from database import Database
@@ -62,6 +62,8 @@ class CartTable(QWidget):
             # Add new row for new item
             row_count = self.table.rowCount()
 
+            self.table.cellDoubleClicked.connect(self.cart_item_manipulation)
+
             # If the last row has QLineEdit, remove it
             name_edit = self.table.cellWidget(row_count - 1, 1)
             if name_edit and isinstance(name_edit, QLineEdit):
@@ -86,6 +88,118 @@ class CartTable(QWidget):
             self.add_empty_row()
 
 
+    def cart_item_manipulation(self, row, column):
+
+        self.store_ui.toggle_overlay(True)  # Show overlay
+        self.store_ui.overlayClicked.connect(self.close_item_manipulation_popup)
+
+        if row >= 0 and row != self.table.rowCount()-1:
+            item_name = self.table.item(row, 1).text()
+            quantity = self.table.item(row, 2).text()
+            rate = self.table.item(row, 3).text()
+            discount = self.table.item(row, 4).text()
+            total = self.table.item(row, 5).text()
+        else:
+            return
+
+        item_data = {
+            "name" : item_name,
+            "quantity" : quantity,
+            "price" : rate,
+            "discount" : discount,
+            "total" : total
+        }
+
+        self.store_ui.toggle_overlay(True)  # Show overlay
+        self.store_ui.overlayClicked.connect(self.close_item_manipulation_popup)
+        self.item_manipulation_popup = QWidget(self)
+        # Title Bar
+        self.title_bar = QFrame(self)
+        self.title_bar.setStyleSheet("background-color: #444; color: white; padding: 5px;")
+        self.title_layout = QHBoxLayout(self.title_bar)
+        self.title_layout.setContentsMargins(10, 0, 10, 0)
+
+        self.title_label = QLabel("Edit Cart Item")
+        self.title_label.setStyleSheet("color: white;")
+        self.close_button = QPushButton("✖")
+        self.close_button.setFixedSize(20, 20)
+        self.close_button.setStyleSheet("background: none; color: white; border: none;")
+        self.close_button.clicked.connect(self.close_item_manipulation_popup)
+
+        self.title_layout.addWidget(self.title_label)
+        self.title_layout.addStretch()
+        self.title_layout.addWidget(self.close_button)
+        self.title_bar.setFixedHeight(50)
+    
+        name_label = QLabel(f"Item Name: {item_name}")
+        name_label.setFixedHeight(60)
+        name_label.setContentsMargins(10, 10, 10, 10)
+        
+        grid_layout = QGridLayout()
+        
+        grid_layout.setContentsMargins(10, 10, 10, 10)
+        grid_layout.setSpacing(10)
+        
+        quantity_input = QLineEdit(quantity)
+        quantity_input.setPlaceholderText("Enter Quantity.")
+
+        rate = QLineEdit(rate)
+        rate.setPlaceholderText("Enter Rate.")
+        
+        discount = QLineEdit(discount)
+        discount.setPlaceholderText("Enter Discount.")
+
+        grid_layout.addWidget(QLabel("Quantity: "), 0, 0)
+        grid_layout.addWidget(quantity_input, 0, 1)
+        
+        grid_layout.addWidget(QLabel("Rate: "), 1, 0)
+        grid_layout.addWidget(rate, 1, 1)
+        
+        grid_layout.addWidget(QLabel("Discount: "), 2, 0)
+        grid_layout.addWidget(discount, 2, 1)
+
+        button_layout = QHBoxLayout()
+        remove_item_from_cart = QPushButton(text = "Remove from cart")
+        discard_changes = QPushButton(text = "Discard")
+        apply_changes = QPushButton(text = "Apply")
+        apply_changes.clicked.connect(lambda: self.update_cart_item(row, quantity_input.text(), rate.text(), discount.text()))
+
+        button_layout.addWidget(remove_item_from_cart)
+        button_layout.addWidget(discard_changes)
+        button_layout.addWidget(apply_changes)
+    
+            
+        popup_layout = QVBoxLayout()
+        popup_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        popup_layout.setSpacing(0)
+        popup_layout.setContentsMargins(0,0,0,0)
+        popup_layout.addWidget(self.title_bar)
+        popup_layout.addWidget(name_label)
+        popup_layout.addLayout(grid_layout)
+        popup_layout.addStretch()
+        popup_layout.addLayout(button_layout)
+
+        screen_height = self.store_ui.height()
+        screen_width = self.store_ui.width()
+
+        popup_width = 375
+        popup_height = 350
+        popup_x = (screen_width - popup_width) // 2  # Center horizontally
+        popup_y = (screen_height - popup_height) // 2  # Position below the top bar
+        self.item_manipulation_popup.setGeometry(popup_x, popup_y, popup_width, popup_height)
+        self.item_manipulation_popup.setLayout(popup_layout)
+        self.item_manipulation_popup.setParent(self.store_ui)
+        self.item_manipulation_popup.show()
+        self.item_manipulation_popup.raise_()        
+       
+    def update_cart_item(self, row, quantity, price, discount):
+        self.table.item(row, 2).setText(quantity)
+        self.table.item(row, 3).setText(price)
+        self.table.item(row, 4).setText(discount)
+        self.table.item(row, 5).setText(str(int(quantity)*int(price)-int(discount)))
+
+        self.close_item_manipulation_popup() 
+                                                                  
     def update_row_numbers(self):
         """Updates the numbering in the first column after adding/removing rows."""
         for row in range(self.table.rowCount()):
@@ -106,19 +220,19 @@ class CartTable(QWidget):
         name_edit.setPlaceholderText("Search for an item...")
         self.table.setCellWidget(row_count, 1, name_edit)
 
-        # Connect signal to show popup
+        # Connect signal to show add_item_popup
         name_edit.textEdited.connect(lambda: self.show_add_item_popup(name_edit))
 
     def show_add_item_popup(self, name_edit):
-        """Shows the Add Item popup when typing in the name field."""
+        """Shows the Add Item add_item_popup when typing in the name field."""
         self.store_ui.toggle_overlay(True)  # Show overlay
-        self.store_ui.overlayClicked.connect(self.close_popup)
+        self.store_ui.overlayClicked.connect(self.close_add_item_popup)
 
-        # Set popup position just below the top bar
+        # Set add_item_popup position just below the top bar
         margin_top = 60  # Adjust based on top bar height
         screen_width = self.store_ui.width()
         
-        self.popup = QWidget(self)
+        self.add_item_popup = QWidget(self)
 
         self.popupSearchBar = QLineEdit()
         self.popupSearchBar.setText(name_edit.text())
@@ -139,25 +253,32 @@ class CartTable(QWidget):
         popup_x = (screen_width - popup_width) // 2  # Center horizontally
         popup_y = margin_top  # Position below the top bar
 
-        self.popupLayout = QVBoxLayout(self.popup)
+        self.popupLayout = QVBoxLayout(self.add_item_popup)
         self.popupLayout.addWidget(self.popupSearchBar)
         self.popupLayout.addWidget(self.scroll_area)
 
-        self.popup.setGeometry(popup_x, popup_y, popup_width, popup_height)
-        self.popup.setStyleSheet("background-color: white; border-radius: 10px; color:  black;")
+        self.add_item_popup.setGeometry(popup_x, popup_y, popup_width, popup_height)
+        self.add_item_popup.setStyleSheet("background-color: white; border-radius: 10px; color:  black;")
         
-        self.popup.setParent(self.store_ui)  # Ensure it belongs to main window
-        self.popup.show()
+        self.add_item_popup.setParent(self.store_ui)  # Ensure it belongs to main window
+        self.add_item_popup.show()
         self.popupSearchBar.setFocus()
-        self.popup.raise_()  # 🔥 Ensure it's above the overlay
+        self.add_item_popup.raise_()  # 🔥 Ensure it's above the overlay
 
         self.load_popup_items(self.popupSearchBar.text().strip())
 
-    def close_popup(self):
-        """Closes the popup and hides the overlay."""
-        if hasattr(self, "popup"):
-            self.popup.close()
-            del self.popup
+    def close_add_item_popup(self):
+        """Closes the add_item_popup and hides the overlay."""
+        if hasattr(self, "add_item_popup"):
+            self.add_item_popup.close()
+            del self.add_item_popup
+            self.store_ui.toggle_overlay(False)  # Hide overlay
+
+    def close_item_manipulation_popup(self):
+        """Closes the item_manipulation_popup and hides the overlay."""
+        if hasattr(self, "item_manipulation_popup"):
+            self.item_manipulation_popup.close()
+            del self.item_manipulation_popup
             self.store_ui.toggle_overlay(False)  # Hide overlay
 
     def remove_selected_item(self):
@@ -172,7 +293,7 @@ class CartTable(QWidget):
             self.add_empty_row()
 
     def load_popup_items(self, search_query=""):
-        """Loads popup items into the UI with search filtering."""
+        """Loads add_item_popup items into the UI with search filtering."""
         db = Database()
         items = db.get_inventory_items(search_query)
         print(items)
@@ -192,7 +313,7 @@ class CartTable(QWidget):
     def handle_double_click(self, item_data):
         """Handles double-click actions."""
         self.add_item_to_cart(item_data)
-        self.close_popup()
+        self.close_add_item_popup()
 
     def clear_cart(self):
         """Clears all items from the cart after user confirmation."""
