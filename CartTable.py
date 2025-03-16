@@ -6,9 +6,11 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from database import Database
 
 class CartTable(QWidget):
-    def __init__(self, store_ui):
+    def __init__(self, store_ui, parent):
         super().__init__()
         self.store_ui = store_ui  # Reference to StoreFlowUI
+
+        self.parent = parent
 
         self.cart_items = {}
 
@@ -57,6 +59,7 @@ class CartTable(QWidget):
             # Update dictionary
             self.cart_items[item_name]["quantity"] = new_quantity
             self.cart_items[item_name]["total"] = new_total
+            self.parent.update_summary()
 
         else:
             # Add new row for new item
@@ -86,6 +89,7 @@ class CartTable(QWidget):
 
             # Add new empty row for next item entry
             self.add_empty_row()
+            self.parent.update_summary()
 
     def remove_item_from_cart(self, row):
         name = self.table.item(row,1).text()
@@ -102,6 +106,7 @@ class CartTable(QWidget):
             self.cart_items.pop(name)
             self.close_item_manipulation_popup()
             self.update_row_numbers()
+            self.parent.update_summary()
         else:
             return
 
@@ -216,6 +221,7 @@ class CartTable(QWidget):
         self.table.item(row, 3).setText(price)
         self.table.item(row, 4).setText(discount)
         self.table.item(row, 5).setText(str(float(quantity)*(float(price)-float(discount))))
+        self.parent.update_summary()
 
         self.close_item_manipulation_popup() 
                                                                   

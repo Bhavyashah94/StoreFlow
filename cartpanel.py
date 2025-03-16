@@ -1,7 +1,8 @@
 from PyQt6.QtWidgets import (
-    QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QSizePolicy, QWidget
+    QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QSizePolicy, QWidget, QGridLayout
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 
 from CartTable import CartTable
 
@@ -25,7 +26,7 @@ class CartPanel(QFrame):
         self.cart_layout.setSpacing(0)
 
         # ✅ **Cart Table**
-        self.cart_table = CartTable(store_ui)
+        self.cart_table = CartTable(store_ui, self)
         self.cart_layout.addWidget(self.cart_table)
 
         # Buttons (Clear Cart & Hold Cart)
@@ -58,35 +59,46 @@ class CartPanel(QFrame):
         self.summary_layout.setContentsMargins(10, 10, 10, 10)
         self.summary_layout.setSpacing(10)
 
-        # 🔹 **Sales Summary Title**
+        self.summary_layout.addStretch()
+
+        self.sub_total = QLabel()
+        self.total_discount = QLabel()
+        self.round_off = QLabel()
+        self.total = QLabel()
+
+        self.sub_total.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.total_discount.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.round_off.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.total.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        self.grid_layout = QGridLayout()
+
+        self.grid_layout.addWidget(QLabel("Sub-Total: "), 0, 0)
+        self.grid_layout.addWidget(self.sub_total, 0, 1)
+        
+        self.grid_layout.addWidget(QLabel("Discount: "), 1, 0)
+        self.grid_layout.addWidget(self.total_discount, 1, 1)
+        
+        self.grid_layout.addWidget(QLabel("Round Off: "), 2, 0)
+        self.grid_layout.addWidget(self.round_off, 2, 1)
+        
+        self.grid_layout.addWidget(QLabel("Total: "), 3, 0)
+        self.grid_layout.addWidget(self.total, 3, 1)
+
         self.sales_summary_label = QLabel("<b>Sales Summary</b>")
-        self.sales_summary_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.sales_summary_label.setStyleSheet("font-size: 20px")
         self.summary_layout.addWidget(self.sales_summary_label)
 
-        # 🔹 **Sales Summary Labels**
-        self.sub_total_label = QLabel("Subtotal: ₹0.00")
-        self.discount_info_label = QLabel("<i>(Item discount included: ₹0.00)</i>")
-        self.discount_info_label.setStyleSheet("color: gray; font-size: 12px;")  # Light gray text
-        self.round_off_label = QLabel("Round Off: ₹0.00")
-        self.total_label = QLabel("<b>Total: ₹0.00</b>")  # Bold total
+        self.summary_layout.addLayout(self.grid_layout)
 
-        # 🔹 **Adding Labels to Layout**
-        self.summary_layout.addWidget(self.sub_total_label)
-        self.summary_layout.addWidget(self.discount_info_label)
-        self.summary_layout.addWidget(self.round_off_label)
-        self.summary_layout.addWidget(self.total_label)
-
-        # 📌 **Payment Options (Like Zakya)**
-        self.payment_button_layout = QVBoxLayout()
+        self.payment_button_layout = QHBoxLayout()
         self.payment_button_layout.setSpacing(5)
 
         self.cash_btn = QPushButton("Cash ")
         self.card_btn = QPushButton("Card ")
         self.upi_btn = QPushButton("UPI ")
-        self.credit_sale_btn = QPushButton("Credit Sale ")
-        self.split_payment_btn = QPushButton("Split Payment ")
 
-        for btn in [self.cash_btn, self.card_btn, self.upi_btn, self.credit_sale_btn, self.split_payment_btn]:
+        for btn in [self.cash_btn, self.card_btn, self.upi_btn]:
             btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             self.payment_button_layout.addWidget(btn)
 
@@ -98,23 +110,33 @@ class CartPanel(QFrame):
         self.layout.addWidget(self.cart_summary, stretch=3)
         self.setLayout(self.layout)
 
-    def fetch_sales_summary(self):
-        """Fetch latest sales summary from the database"""
-        from database import Database  # Import Database class
-        db = Database()  # Create an instance of Database    
-
-        summary_data = db.get_sales_summary()  # Fetch sales summary
-        return summary_data if summary_data else {"sub_total": 0, "discount": 0, "round_off": 0, "total": 0}
-
-    def update_sales_summary(self):
-        """Update the sales summary panel with data from the database"""
-        summary_data = self.fetch_sales_summary()
-
-        self.sub_total_label.setText(f"Subtotal: ₹{summary_data['sub_total']:.2f}")
-        self.discount_info_label.setText(f"<i>(Item discount included: ₹{summary_data['discount']:.2f})</i>")
-        self.round_off_label.setText(f"Round Off: ₹{summary_data['round_off']:.2f}")
-        self.total_label.setText(f"<b>Total: ₹{summary_data['total']:.2f}</b>")
-
     def clearCart(self):
         self.cart_table.clear_cart()
-        self.update_sales_summary()
+
+    def update_summary(self):
+        total_sub_price = 0
+        total_price = 0.0
+        total_discount = 0.00
+
+        for row in range(self.cart_table.table.rowCount()):
+            qty_item = self.cart_table.table.item(row, 2)  # Adjust column index
+            price_item = self.cart_table.table.item(row, 3)  # Adjust column index
+            discount_item = self.cart_table.table.item(row, 4)  # Adjust column index
+            
+            if qty_item and price_item:
+                try:
+                    qty = int(qty_item.text())
+                    price = float(price_item.text())
+                    discount = float(discount_item.text())
+                    total_sub_price += price
+                    total_discount += discount
+                    total_price += qty * price - discount
+                except ValueError:
+                    continue  # Ignore invalid entries
+
+        # Update the summary labels
+        self.sub_total.setText(str(total_sub_price))
+        self.total_discount.setText(str(total_discount))
+        self.total.setText(str(total_price))
+
+
