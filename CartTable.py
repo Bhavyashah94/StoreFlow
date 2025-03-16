@@ -87,6 +87,23 @@ class CartTable(QWidget):
             # Add new empty row for next item entry
             self.add_empty_row()
 
+    def remove_item_from_cart(self, row):
+        name = self.table.item(row,1).text()
+        reply = QMessageBox.question(
+            self, 
+            "Remove Item", 
+            f"Are you sure you want to remove {name} from the cart?", 
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, 
+            QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            self.table.removeRow(row)
+            self.cart_items.pop(name)
+            self.close_item_manipulation_popup()
+            self.update_row_numbers()
+        else:
+            return
 
     def cart_item_manipulation(self, row, column):
 
@@ -109,9 +126,7 @@ class CartTable(QWidget):
             "discount" : discount,
             "total" : total
         }
-
-        self.store_ui.toggle_overlay(True)  # Show overlay
-        self.store_ui.overlayClicked.connect(self.close_item_manipulation_popup)
+        
         self.item_manipulation_popup = QWidget(self)
         # Title Bar
         self.title_bar = QFrame(self)
@@ -160,7 +175,11 @@ class CartTable(QWidget):
 
         button_layout = QHBoxLayout()
         remove_item_from_cart = QPushButton(text = "Remove from cart")
+        remove_item_from_cart.clicked.connect(lambda: self.remove_item_from_cart(row))
+
         discard_changes = QPushButton(text = "Discard")
+        discard_changes.clicked.connect(self.close_item_manipulation_popup)
+
         apply_changes = QPushButton(text = "Apply")
         apply_changes.clicked.connect(lambda: self.update_cart_item(row, quantity_input.text(), rate.text(), discount.text()))
 
@@ -196,7 +215,7 @@ class CartTable(QWidget):
         self.table.item(row, 2).setText(quantity)
         self.table.item(row, 3).setText(price)
         self.table.item(row, 4).setText(discount)
-        self.table.item(row, 5).setText(str(int(quantity)*int(price)-int(discount)))
+        self.table.item(row, 5).setText(str(float(quantity)*(float(price)-float(discount))))
 
         self.close_item_manipulation_popup() 
                                                                   
