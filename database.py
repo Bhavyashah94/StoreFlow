@@ -61,6 +61,22 @@ class Database:
         else:
             print("✅ Database and table initialized successfully.")
 
+    def get_sales_summary(self):
+        """Fetch latest sales summary from database"""
+        query = QSqlQuery()
+        query.exec("SELECT sub_total, tax, discount, round_off, total FROM sales_summary ORDER BY id DESC LIMIT 1")
+
+        if query.next():
+            return {
+                "sub_total": query.value(0),
+                "tax": query.value(1),
+                "discount": query.value(2),
+                "round_off": query.value(3),
+                "total": query.value(4),
+            }
+        
+        return None  # Fixed indentation issue
+
     def add_item(self, name, gtin, unit, selling_price, mrp, cost_price, stock, reorder_point):
         """Adds a new item to the inventory."""
         query = QSqlQuery()
@@ -84,7 +100,7 @@ class Database:
         print(f"✅ Item '{name}' added successfully!")
         return True
 
-    def is_name_unique(self, name :str)->bool:
+    def is_name_unique(self, name: str) -> bool:
         """Checks if an item name is unique in the inventory."""
         query = QSqlQuery()
         query.prepare("SELECT COUNT(*) FROM inventory WHERE name = :name")
@@ -99,7 +115,7 @@ class Database:
 
         return False
     
-    def is_gtin_unique(self, gtin :str)->bool:
+    def is_gtin_unique(self, gtin: str) -> bool:
         """Checks if an item EAN is unique in the inventory."""
         query = QSqlQuery()
         query.prepare("SELECT COUNT(*) FROM inventory WHERE gtin = :gtin")
@@ -146,4 +162,3 @@ class Database:
             inventory_items.append(item)
 
         return inventory_items
-
