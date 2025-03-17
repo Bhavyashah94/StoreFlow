@@ -84,8 +84,10 @@ class CartTable(QWidget):
                 "row": row_count - 1,
                 "quantity": 1,
                 "price": price,
-                "total": price
+                "discount": 0,  # Default discount
+                "total": price  # Update total if discount changes
             }
+
 
             # Add new empty row for next item entry
             self.add_empty_row()
@@ -217,13 +219,26 @@ class CartTable(QWidget):
         self.item_manipulation_popup.raise_()        
        
     def update_cart_item(self, row, quantity, price, discount):
+        if float(discount) > float(price):
+            QMessageBox.warning(self, "Invalid Discount", "Discount cannot exceed the price!")
+            return
+
+        item_name = self.table.item(row, 0).text()  # Get item name
+
+        if item_name in self.cart_items:
+            self.cart_items[item_name]["quantity"] = float(quantity)
+            self.cart_items[item_name]["price"] = float(price)
+            self.cart_items[item_name]["discount"] = float(discount)
+            self.cart_items[item_name]["total"] = float(quantity) * (float(price) - float(discount))
+
         self.table.item(row, 2).setText(quantity)
         self.table.item(row, 3).setText(price)
         self.table.item(row, 4).setText(discount)
-        self.table.item(row, 5).setText(str(float(quantity)*(float(price)-float(discount))))
+        self.table.item(row, 5).setText(str(float(quantity) * (float(price) - float(discount))))
         self.parent.update_summary()
 
-        self.close_item_manipulation_popup() 
+        self.close_item_manipulation_popup()
+
                                                                   
     def update_row_numbers(self):
         """Updates the numbering in the first column after adding/removing rows."""
@@ -303,6 +318,7 @@ class CartTable(QWidget):
         """Closes the item_manipulation_popup and hides the overlay."""
         if hasattr(self, "item_manipulation_popup"):
             self.item_manipulation_popup.close()
+            self.item_manipulation_popup.lower()
             del self.item_manipulation_popup
             self.store_ui.toggle_overlay(False)  # Hide overlay
 
@@ -358,7 +374,7 @@ class CartTable(QWidget):
             # Clear the table and reset cart data
             self.table.setRowCount(0)
             self.cart_items.clear()
-
+            self.parent.update_summary()
             # Re-add an empty row for a new entry
             self.add_empty_row()
 
@@ -367,6 +383,8 @@ class popupItemWidget(QFrame):
     double_clicked = pyqtSignal(object) 
     def __init__(self, item_data, parent=None):
         super().__init__(parent)
+
+        self.setObjectName("popupItemWidget")
 
         self.item_data = item_data
 

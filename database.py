@@ -40,8 +40,10 @@ class Database:
         QSqlDatabase.removeDatabase("TempConnection")
 
     def create_table(self):
-        """Creates inventory table if it doesn't exist."""
+        """Creates inventory and transactions tables with payment details."""
         query = QSqlQuery()
+
+        # Inventory table (unchanged)
         query.exec("""
             CREATE TABLE IF NOT EXISTS inventory (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -51,31 +53,35 @@ class Database:
                 selling_price DECIMAL(10,2) CHECK (selling_price >= 0),
                 mrp DECIMAL(10,2) CHECK (mrp >= 0),
                 cost_price DECIMAL(10,2) CHECK (cost_price >= 0),
-                stock DECIMAL(10,3) CHECK (stock >= 0),
+                stock DECIMAL(10,3),
                 reorder_point DECIMAL(10,3) CHECK (reorder_point >= 0)
             )
         """)
 
+        # Transactions table with payment details
+        query.exec("""
+            CREATE TABLE IF NOT EXISTS transactions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                inventory_id INT NOT NULL,
+                inventory_name VARCHAR(255) NOT NULL,  -- Store item name for easy reference
+                transaction_type ENUM('sale', 'purchase', 'adjustment') NOT NULL,
+                quantity DECIMAL(10,3) CHECK (quantity > 0),
+                price DECIMAL(10,2) CHECK (price >= 0),
+                discount DECIMAL(10,2) CHECK (discount >= 0),
+                payment_mode ENUM('cash', 'credit', 'UPI') NOT NULL,
+                cash_received DECIMAL(10,2) DEFAULT NULL,
+                return_amount DECIMAL(10,2) DEFAULT NULL,
+                reference_no VARCHAR(50) DEFAULT NULL,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (inventory_id) REFERENCES inventory(id) ON DELETE CASCADE
+            )
+        """)
+
+
         if query.lastError().isValid():
             print(f"❌ Table creation error: {query.lastError().text()}")
         else:
-            print("✅ Database and table initialized successfully.")
-
-    def get_sales_summary(self):
-        """Fetch latest sales summary from database"""
-        query = QSqlQuery()
-        query.exec("SELECT sub_total, tax, discount, round_off, total FROM sales_summary ORDER BY id DESC LIMIT 1")
-
-        if query.next():
-            return {
-                "sub_total": query.value(0),
-                "tax": query.value(1),
-                "discount": query.value(2),
-                "round_off": query.value(3),
-                "total": query.value(4),
-            }
-        
-        return None  # Fixed indentation issue
+            print("✅ Database and tables initialized successfully.")
 
     def add_item(self, name, gtin, unit, selling_price, mrp, cost_price, stock, reorder_point):
         """Adds a new item to the inventory."""
@@ -162,3 +168,118 @@ class Database:
             inventory_items.append(item)
 
         return inventory_items
+
+    def record_transaction(self, inventory_name, transaction_type, quantity, price, discount=0.00, 
+                        payment_mode="cash", cash_received=None, return_amount=None, reference_no=None, timestamp=None):
+        """Records a transaction using inventory name instead of ID."""
+        
+        # Fetch inventory ID using inventory name
+        query = QSqlQuery()
+        query.prepare("SELECT id FROM inventory WHERE name = :inventory_name")
+        query.bindValue(":inventory_name", inventory_name)
+
+        if not query.exec() or not query.next():
+            print(f"❌ Inventory item '{inventory_name}' not found.")
+            return False
+
+        inventory_id = query.value(0)
+
+        if not self.update_stock(inventory_id, quantity, transaction_type):
+            return False  # Stock update failed
+
+        query.prepare("""
+            INSERT INTO transactions (inventory_name, inventory_id, transaction_type, quantity, price, discount, 
+                                    payment_mode, cash_received, return_amount, reference_no, timestamp)
+            VALUES (:inventory_name, :inventory_id, :transaction_type, :quantity, :price, :discount, 
+                    :payment_mode, :cash_received, :return_amount, :reference_no, :timestamp)
+        """)
+        query.bindValue(":inventory_name", inventory_name)
+        query.bindValue(":inventory_id", inventory_id)
+        query.bindValue(":transaction_type", transaction_type)
+        query.bindValue(":quantity", quantity)
+        query.bindValue(":price", price)
+        query.bindValue(":discount", discount)
+        query.bindValue(":payment_mode", payment_mode)
+
+        # Handle payment fields
+        if payment_mode == "cash":
+            query.bindValue(":cash_received", cash_received if cash_received is not None else 0.00)
+            query.bindValue(":return_amount", return_amount if return_amount is not None else 0.00)
+            query.bindValue(":reference_no", None)
+        else:  # UPI or credit
+            query.bindValue(":cash_received", None)
+            query.bindValue(":return_amount", None)
+            query.bindValue(":reference_no", reference_no)
+
+        # Bind timestamp
+        query.bindValue(":timestamp", timestamp)
+
+        if not query.exec():
+            print(f"❌ Transaction error: {query.lastError().text()}")
+            return False
+
+        print(f"✅ Transaction recorded for '{inventory_name}' with payment mode {payment_mode}.")
+        return True
+
+
+
+    def get_transactions(self, inventory_name=None):
+        """Fetch transactions based on inventory name."""
+        query = QSqlQuery()
+
+        if inventory_name:
+            query.prepare("""
+                SELECT id, inventory_name, inventory_id, transaction_type, quantity, price, discount, payment_mode, cash_received, return_amount, reference_no, timestamp 
+                FROM transactions WHERE inventory_name = :inventory_name ORDER BY timestamp DESC
+            """)
+            query.bindValue(":inventory_name", inventory_name)
+        else:
+            query.prepare("""
+                SELECT id, inventory_name, inventory_id, transaction_type, quantity, price, discount, payment_mode, cash_received, return_amount, reference_no, timestamp 
+                FROM transactions ORDER BY timestamp DESC
+            """)
+
+        query.exec()
+
+        transactions = []
+        while query.next():
+            transaction = {
+                "id": query.value(0),
+                "inventory_name": query.value(1),  # No need to fetch separately
+                "inventory_id": query.value(2),  # Still available if needed
+                "transaction_type": query.value(3),
+                "quantity": query.value(4),
+                "price": query.value(5),
+                "discount": query.value(6),
+                "payment_mode": query.value(7),
+                "cash_received": query.value(8),
+                "return_amount": query.value(9),
+                "reference_no": query.value(10),
+                "timestamp": query.value(11),
+            }
+            transactions.append(transaction)
+
+        return transactions
+
+    def update_stock(self, inventory_id, quantity, transaction_type):
+        """Updates stock quantity based on transaction type (sale or restock)."""
+        query = QSqlQuery()
+
+        # Determine stock adjustment (subtract for sale, add for restock)
+        if transaction_type == "sale":
+            query.prepare("UPDATE inventory SET stock = stock - :quantity WHERE id = :inventory_id")
+        elif transaction_type == "restock":
+            query.prepare("UPDATE inventory SET stock = stock + :quantity WHERE id = :inventory_id")
+        else:
+            print(f"⚠️ Unknown transaction type: {transaction_type}")
+            return False
+
+        query.bindValue(":quantity", quantity)
+        query.bindValue(":inventory_id", inventory_id)
+
+        if not query.exec():
+            print(f"❌ Stock update failed: {query.lastError().text()}")
+            return False
+
+        print(f"✅ Stock updated for inventory ID {inventory_id}.")
+        return True

@@ -130,6 +130,7 @@ class StoreFlowUI(QWidget):
             self.overlay.show()
             self.overlay.raise_()
         else:
+            self.overlay.lower()
             self.overlay.hide()
 
     def load_stylesheet(self, filename):
@@ -150,7 +151,7 @@ class StoreFlowUI(QWidget):
     def switch_panel(self, index, name):
         """Handles panel switching with cart clearance confirmation."""
         if self.panel_manager.currentIndex() == 0:  # If switching from Cart
-            if self.cart_panel.cart_table.table.rowCount() > 0:  # Check if cart has items
+            if self.cart_panel.cart_table.table.rowCount() > 1:  # Check if cart has items
                 confirm = QMessageBox(self)
                 confirm.setWindowTitle("Confirm Clear")
                 confirm.setText("You have items in your cart. Clear the cart before switching?")

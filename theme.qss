@@ -58,6 +58,18 @@ QWidget#inventoryItem:hover {
     border: 1px solid lightgray;
 }
 
+QFrame#popupItemWidget {
+    background-color: #EDF2F4;
+    color: #000000;
+    border-radius: 10px;
+}
+
+QFrame#popupItemWidget:hover {
+    background-color: #8D99AE;
+    color: #EDF2F4;
+    border: 1px solid lightgray;
+}
+
 QFrame#top_bar {
     background-color: #2B2D42;
 }
