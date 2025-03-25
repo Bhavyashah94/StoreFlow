@@ -275,7 +275,8 @@ class CartPanel(QFrame):
                 payment_mode=self.selected_payment_mode,
                 cash_received=amount_value if self.selected_payment_mode == "cash" else None,
                 return_amount=amount_value - final_total if self.selected_payment_mode == "cash" else None,
-                reference_no=amount if self.selected_payment_mode in ["credit", "UPI"] else None
+                reference_no=amount if self.selected_payment_mode in ["credit", "UPI"] else None,
+                timestamp = transaction_timestamp
             ):
                 success = False
                 print(f"❌ Failed to save transaction for {inventory_name}.")
@@ -310,7 +311,7 @@ class CartPanel(QFrame):
             }
 
             self.close_payment_popup()  # Close payment UI
-            
+            self.cart_table.clear_cart(True)
             # Show receipt popup
             self.receipt_popup = ReceiptPopup(self, transaction_details)
             self.receipt_popup.exec()

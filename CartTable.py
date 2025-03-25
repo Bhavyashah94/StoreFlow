@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (QLineEdit, QStyledItemDelegate, QVBoxLayout, QTableWidget,
+from PyQt6.QtWidgets import (QLineEdit, QVBoxLayout, QTableWidget,
                             QHeaderView, QTableWidgetItem, QWidget, QFrame, QHBoxLayout,
                             QLabel, QScrollArea, QMessageBox, QGridLayout, QPushButton)
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -356,8 +356,16 @@ class CartTable(QWidget):
         self.add_item_to_cart(item_data)
         self.close_add_item_popup()
 
-    def clear_cart(self):
+    def clear_cart(self, force=False):
         """Clears all items from the cart after user confirmation."""
+        if force is True and self.table.rowCount() !=0:
+            self.table.setRowCount(0)
+            self.cart_items.clear()
+            self.parent.update_summary()
+            # Re-add an empty row for a new entry
+            self.add_empty_row()
+            return
+
         if self.table.rowCount() == 0:
             QMessageBox.information(self, "Cart is Empty", "There are no items to clear.")
             return

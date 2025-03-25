@@ -65,13 +65,13 @@ class Database:
                 inventory_id INT NOT NULL,
                 inventory_name VARCHAR(255) NOT NULL,  -- Store item name for easy reference
                 transaction_type ENUM('sale', 'purchase', 'adjustment') NOT NULL,
-                quantity DECIMAL(10,3) CHECK (quantity > 0),
+                quantity DECIMAL(10,3) CHECK (quantity >= 0),
                 price DECIMAL(10,2) CHECK (price >= 0),
                 discount DECIMAL(10,2) CHECK (discount >= 0),
-                payment_mode ENUM('cash', 'credit', 'UPI') NOT NULL,
+                payment_mode ENUM('cash', 'credit', 'UPI', 'other') NOT NULL,
                 cash_received DECIMAL(10,2) DEFAULT NULL,
                 return_amount DECIMAL(10,2) DEFAULT NULL,
-                reference_no VARCHAR(50) DEFAULT NULL,
+                reference_no VARCHAR(255) DEFAULT NULL,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (inventory_id) REFERENCES inventory(id) ON DELETE CASCADE
             )
@@ -105,6 +105,23 @@ class Database:
         
         print(f"✅ Item '{name}' added successfully!")
         return True
+    
+    def delete_item(self, name: str) -> bool:
+        """Deletes an item from inventory."""
+        query = QSqlQuery()
+        query.prepare("DELETE FROM inventory WHERE name = :name")
+        query.bindValue(":name", name)
+
+        if not query.exec():
+            print(f"❌ Query error: {query.lastError().text()}")
+            return False
+
+        if query.numRowsAffected() > 0:
+            return True  # Item was successfully deleted
+
+        print("⚠️ No item deleted (Item may not exist)")
+        return False  # Item didn't exist or was not deleted
+
 
     def is_name_unique(self, name: str) -> bool:
         """Checks if an item name is unique in the inventory."""
@@ -283,3 +300,68 @@ class Database:
 
         print(f"✅ Stock updated for inventory ID {inventory_id}.")
         return True
+
+    def has_transactions(self, inventory_name: str) -> bool:
+        """Returns True if the specified inventory item has transactions."""
+        query = QSqlQuery()
+        query.prepare("SELECT COUNT(*) FROM transactions WHERE inventory_name = :inventory_name")
+        query.bindValue(":inventory_name", inventory_name)
+
+        if not query.exec():
+            print(f"❌ Query error: {query.lastError().text()}")
+            return False  # Assume no transactions if query fails
+
+        if query.next():
+            return query.value(0) > 0  # Check if count > 0
+
+        return False
+    
+    def update_item(self, name, unit, selling_price, mrp, cost_price, stock, reorder_point):
+        """Updates an inventory item based on its unique name."""
+        query = QSqlQuery()
+        query.prepare("""
+            UPDATE inventory 
+            SET unit_of_measurement = :unit, selling_price = :selling_price, mrp = :mrp, 
+                cost_price = :cost_price, stock = :stock, reorder_point = :reorder_point
+            WHERE name = :name
+        """)
+        query.bindValue(":name", name)
+        query.bindValue(":unit", unit)
+        query.bindValue(":selling_price", selling_price)
+        query.bindValue(":mrp", mrp)
+        query.bindValue(":cost_price", cost_price)
+        query.bindValue(":stock", stock)
+        query.bindValue(":reorder_point", reorder_point)
+
+        if query.exec():
+            return True
+        else:
+            print("Inventory update failed:", query.lastError().text())
+            return False
+
+    def record_edit_transaction(self, inventory_name, changes):
+        """Logs an inventory edit as a transaction with change details in reference_no."""
+        # Fetch inventory ID using inventory name
+        query = QSqlQuery()
+        query.prepare("SELECT id FROM inventory WHERE name = :inventory_name")
+        query.bindValue(":inventory_name", inventory_name)
+
+        if not query.exec() or not query.next():
+            print(f"❌ Inventory item '{inventory_name}' not found.")
+            return False
+
+        inventory_id = query.value(0)
+
+        query = QSqlQuery()
+        query.prepare("""
+            INSERT INTO transactions (inventory_name, inventory_id, transaction_type, quantity, price, discount, 
+                                    payment_mode, reference_no)
+            VALUES (:inventory_name, :inventory_id, 'adjustment', 0, 0, 0, 'other', :reference_no)
+        """)
+        query.bindValue(":inventory_name", inventory_name)
+        query.bindValue(":inventory_id", inventory_id)
+        query.bindValue(":reference_no", changes)  # Storing changes as a string
+        print(query)
+
+        if not query.exec():
+            print("Transaction log failed:", query.lastError().text())

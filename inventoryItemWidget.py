@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QMenu, QGridLayout, QFrame, QWidget
 from PyQt6.QtCore import Qt, pyqtSignal
 
-
+from database import Database
 
 class InventoryItemWidget(QFrame):
     right_clicked = pyqtSignal(object)  # Signal when right-clicked
@@ -65,22 +65,35 @@ class InventoryItemWidget(QFrame):
             self.double_clicked.emit(self.item_data)
 
     def show_context_menu(self, position):
+        database = Database()
         menu = QMenu(self)
         menu.aboutToHide.connect(lambda: self.setProperty("hovered", False))
         menu.aboutToHide.connect(lambda: self.style().unpolish(self))
         menu.aboutToHide.connect(lambda: self.style().polish(self))
         self.update()  # Ensure UI refresh
-        edit_action = menu.addAction("Edit Item")
-        delete_action = menu.addAction("Delete Item")
+
+        # Always allow "View Details"
         details_action = menu.addAction("View Details")
+
+        # Check if the item exists in transactions
+        has_transactions = database.has_transactions(self.item_data['name'])
+
+        # Only add "Edit Item" if the item is NOT new
+        edit_action = menu.addAction("Edit Item") if has_transactions else None
+
+        # Only add "Delete Item" if there are NO transactions
+        delete_action = menu.addAction("Delete Item") if not has_transactions else None
 
         action = menu.exec(position)
 
-        if action == edit_action:
+        # Check action only if it was actually added
+        if action and action == edit_action:
             self.right_clicked.emit(("edit", self.item_data))
-        elif action == delete_action:
+        elif action and action == delete_action:
             self.right_clicked.emit(("delete", self.item_data))
-        elif action == details_action:
+        elif action and action == details_action:
             self.right_clicked.emit(("details", self.item_data))
+
+
 
 
