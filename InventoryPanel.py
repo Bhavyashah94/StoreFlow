@@ -494,7 +494,9 @@ class InventoryPanel(QWidget):
 
         #Edit inventory panel
         self.edit_inventory_panel = EditInventoryPanel(self)
-        self.edit_inventory_panel.item_updated.connect(self.load_inventory_items, self.show_add_new_panel)
+        self.edit_inventory_panel.item_updated.connect(
+            lambda: (self.load_inventory_items(), self.show_add_new_panel())
+        )
         self.inventory_info.addWidget(self.edit_inventory_panel)
 
         # Add New Inventory Panel to StackedWidget
