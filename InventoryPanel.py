@@ -504,6 +504,8 @@ class InventoryPanel(QWidget):
         self.add_new_inventory_panel.item_added.connect(self.load_inventory_items)
         self.inventory_info.addWidget(self.add_new_inventory_panel)
 
+        self.inventory_info.setCurrentWidget(self.add_new_inventory_panel)
+
         self.layout.addWidget(self.inventory_list)
         self.layout.addWidget(self.inventory_info)
 
