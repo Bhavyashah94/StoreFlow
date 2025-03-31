@@ -38,6 +38,8 @@ class CartTable(QWidget):
 
         self.layout.addWidget(self.table)
 
+        self.table.cellDoubleClicked.connect(self.cart_item_manipulation)
+
         # Add first row with QLineEdit
         self.add_empty_row()
 
@@ -65,7 +67,7 @@ class CartTable(QWidget):
             # Add new row for new item
             row_count = self.table.rowCount()
 
-            self.table.cellDoubleClicked.connect(self.cart_item_manipulation)
+            
 
             # If the last row has QLineEdit, remove it
             name_edit = self.table.cellWidget(row_count - 1, 1)
@@ -113,12 +115,7 @@ class CartTable(QWidget):
             return
 
     def cart_item_manipulation(self, row, column):
-                # Disconnect previous connections before connecting again
-        try:
-            self.table.cellDoubleClicked.disconnect()
-        except TypeError:
-            pass  # No existing connection, safe to ignore
-        self.store_ui.toggle_overlay(True)  # Show overlay
+        self.store_ui.toggle_overlay(True)
         self.store_ui.overlayClicked.connect(self.close_item_manipulation_popup)
 
         if row >= 0 and row != self.table.rowCount()-1:
@@ -340,7 +337,6 @@ class CartTable(QWidget):
             self.item_manipulation_popup.close()
             del self.item_manipulation_popup
             self.store_ui.toggle_overlay(False)
-            self.store_ui.overlayClicked.disconnect(self.close_item_manipulation_popup)
 
 
     def remove_selected_item(self):
