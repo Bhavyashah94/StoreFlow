@@ -113,7 +113,11 @@ class CartTable(QWidget):
             return
 
     def cart_item_manipulation(self, row, column):
-
+                # Disconnect previous connections before connecting again
+        try:
+            self.table.cellDoubleClicked.disconnect()
+        except TypeError:
+            pass  # No existing connection, safe to ignore
         self.store_ui.toggle_overlay(True)  # Show overlay
         self.store_ui.overlayClicked.connect(self.close_item_manipulation_popup)
 
@@ -215,7 +219,7 @@ class CartTable(QWidget):
         self.item_manipulation_popup.setLayout(popup_layout)
         self.item_manipulation_popup.setParent(self.store_ui)
         self.item_manipulation_popup.show()
-        self.item_manipulation_popup.raise_()        
+      
        
     def update_cart_item(self, row, quantity, price, discount):
         print(f"Discount: {discount}")
@@ -331,12 +335,13 @@ class CartTable(QWidget):
             self.store_ui.toggle_overlay(False)  # Hide overlay
 
     def close_item_manipulation_popup(self):
-        """Closes the item_manipulation_popup and hides the overlay."""
         if hasattr(self, "item_manipulation_popup"):
+            print("Closing item manipulation popup")
             self.item_manipulation_popup.close()
-            self.item_manipulation_popup.lower()
             del self.item_manipulation_popup
-            self.store_ui.toggle_overlay(False)  # Hide overlay
+            self.store_ui.toggle_overlay(False)
+            self.store_ui.overlayClicked.disconnect(self.close_item_manipulation_popup)
+
 
     def remove_selected_item(self):
         """Removes the selected row and updates numbering."""
