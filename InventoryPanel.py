@@ -671,6 +671,7 @@ class InventoryPanel(QWidget):
             # Show item details along with the scrollable transaction history in a dialog
             details_dialog = QDialog(self)
             details_dialog.setWindowTitle("Item Details")
+            details_dialog.setObjectName("item_details_dialog")
             dialog_layout = QVBoxLayout(details_dialog)
 
             # Static item details as a QLabel (non-scrollable part)

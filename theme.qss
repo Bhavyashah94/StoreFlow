@@ -203,3 +203,10 @@ QLineEdit {
     padding: 5px;
     border-radius: 4px;
 }
+
+QDialog#item_details_dialog {
+    background-color: #f8f8f8;
+    color: black;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+}

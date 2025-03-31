@@ -253,8 +253,8 @@ class CartPanel(QFrame):
         transaction_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         transaction_id = f"TXN{int(datetime.now().timestamp())}"  # Unique transaction ID
 
-        subtotal = sum(item["quantity"] * item["price"] for item in self.cart_table.cart_items.values())
-        total_discount = sum(item.get("discount", 0) for item in self.cart_table.cart_items.values())
+        subtotal = sum(item["quantity"] * item["price"] - item["discount"] for item in self.cart_table.cart_items.values())
+        total_discount = sum(item["discount"] for item in self.cart_table.cart_items.values())
         final_total = subtotal - total_discount
 
         success = True
@@ -263,7 +263,7 @@ class CartPanel(QFrame):
         for inventory_name, item in self.cart_table.cart_items.items():
             quantity = item.get("quantity")
             price = item.get("price")
-            discount = item.get("discount", 0)
+            discount = item.get("discount")
             total_price = (price - discount) * quantity
 
             if not self.database.record_transaction(
