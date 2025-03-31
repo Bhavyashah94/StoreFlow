@@ -52,7 +52,7 @@ class CartTable(QWidget):
             # Item already exists, update quantity and total price
             row = self.cart_items[item_name]["row"]
             new_quantity = self.cart_items[item_name]["quantity"] + 1
-            new_total = new_quantity * price
+            new_total = new_quantity * (price - self.cart_items[item_name]["discount"])
 
             # Update UI table
             self.table.item(row, 2).setText(str(new_quantity))  # Quantity
