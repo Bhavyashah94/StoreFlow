@@ -143,7 +143,7 @@ class CartPanel(QFrame):
                     discount = float(discount_item.text())
                     total_sub_price += price*qty
                     total_discount += discount*qty
-                    total_price += qty * price - discount
+                    total_price += qty * price - discount * qty
                 except ValueError:
                     continue
 
