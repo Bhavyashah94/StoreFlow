@@ -12,9 +12,10 @@ class TransactionsPanel(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(10)
 
-        # defining columns
-        self.table = QTableWidget(0, 4)  
-        self.table.setHorizontalHeaderLabels(["Item Name", "Type", "Payment Mode", "Timestamp", "Reference No."])
+        # Defining columns
+        self.table = QTableWidget(0, 9)  
+        self.table.setHorizontalHeaderLabels(["Item Name", "Transaction Type", "Time Stamp", "Payment Mode", "Reference No.", "Quantity",
+                                               "Price", "Discount", "Total"])
 
         # Resizing Columns
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -35,11 +36,23 @@ class TransactionsPanel(QWidget):
     def add_transaction(self, transaction):
         row = self.table.rowCount()
         self.table.insertRow(row)  # New row dynamically
-
-        self.table.setItem(row, 0, QTableWidgetItem(transaction["inventory_name"]))
-        self.table.setItem(row, 1, QTableWidgetItem(transaction["transaction_type"]))
-        self.table.setItem(row, 2, QTableWidgetItem(transaction["payment_mode"]))
-        timestamp_str = transaction["timestamp"].toString("yyyy-MM-dd hh:mm:ss") if hasattr(transaction["timestamp"], "toString") else str(transaction["timestamp"])
-        self.table.setItem(row, 3, QTableWidgetItem(timestamp_str))
-        self.table.setItem(row, 4, QTableWidgetItem(transaction["reference_no"]))
         
+        if transaction["transaction_type"] == 'adjustment':
+            self.table.setItem(row, 0, QTableWidgetItem(transaction["inventory_name"]))
+            self.table.setItem(row, 1, QTableWidgetItem(transaction["transaction_type"]))
+            timestamp_str = transaction["timestamp"].toString("yyyy-MM-dd hh:mm:ss") if hasattr(transaction["timestamp"], "toString") else str(transaction["timestamp"])
+            self.table.setItem(row, 2, QTableWidgetItem(timestamp_str))
+            self.table.setItem(row, 3, QTableWidgetItem(transaction["reference_no"]))
+            self.table.setSpan(row, 3, 1, 6)
+        
+        else:
+            self.table.setItem(row, 0, QTableWidgetItem(transaction["inventory_name"]))
+            self.table.setItem(row, 1, QTableWidgetItem(transaction["transaction_type"]))
+            self.table.setItem(row, 3, QTableWidgetItem(transaction["payment_mode"]))
+            timestamp_str = transaction["timestamp"].toString("yyyy-MM-dd hh:mm:ss") if hasattr(transaction["timestamp"], "toString") else str(transaction["timestamp"])
+            self.table.setItem(row, 2, QTableWidgetItem(timestamp_str))
+            self.table.setItem(row, 4, QTableWidgetItem(transaction["reference_no"]))
+            self.table.setItem(row, 5, QTableWidgetItem(str(transaction["quantity"])))
+            self.table.setItem(row, 6, QTableWidgetItem(str(transaction["price"])))
+            self.table.setItem(row, 7, QTableWidgetItem(str(transaction["discount"])))
+            self.table.setItem(row, 8, QTableWidgetItem(str(int(transaction["quantity"]) * (transaction["price"] - transaction["discount"]))))
