@@ -1,4 +1,5 @@
-from PyQt6.QtWidgets import QLabel, QVBoxLayout, QMenu, QGridLayout, QFrame, QWidget
+from PyQt6.QtWidgets import (QLabel, QVBoxLayout, QMenu, QGridLayout, QFrame, QWidget,
+                            QSpinBox, QLineEdit, QPushButton, QHBoxLayout)
 from PyQt6.QtCore import Qt, pyqtSignal
 
 from database import Database
@@ -47,7 +48,6 @@ class InventoryItemWidget(QFrame):
             self.setLayout(self.main_layout)
             self.setFixedHeight(120)  # Adjust height as needed
 
-
     def on_edit_clicked(self):
         self.right_clicked.emit(("edit", self.item_data))
 
@@ -84,6 +84,9 @@ class InventoryItemWidget(QFrame):
         # Only add "Delete Item" if there are NO transactions
         delete_action = menu.addAction("Delete Item") if not has_transactions else None
 
+        # Always allow "Add Stocks"
+        stocks_action = menu.addAction("Add Stocks")
+
         action = menu.exec(position)
 
         # Check action only if it was actually added
@@ -93,7 +96,60 @@ class InventoryItemWidget(QFrame):
             self.right_clicked.emit(("delete", self.item_data))
         elif action and action == details_action:
             self.right_clicked.emit(("details", self.item_data))
+        elif action and action == stocks_action:
+            AddStockPopup(self.item_data, self).show()
 
-
-
-
+class AddStockPopup(QWidget):
+    def __init__(self, item_data, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(f"Add Stock - {item_data['name']}")
+        self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint)
+        self.setFixedSize(300, 200)
+        
+        self.item_data = item_data
+        self.parent_widget = parent
+        
+        layout = QVBoxLayout()
+        
+        # Current stock
+        current_stock = QLabel(f"Current Stock: {item_data.get('stock', 0)}")
+        current_stock.setStyleSheet("font-size: 14px;")
+        layout.addWidget(current_stock)
+        
+        # Quantity input
+        layout.addWidget(QLabel("Quantity to Add:"))
+        self.quantity_input = QSpinBox()
+        self.quantity_input.setMinimum(1)
+        self.quantity_input.setMaximum(100)
+        layout.addWidget(self.quantity_input)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        self.confirm_button = QPushButton("Confirm")
+        self.cancel_button = QPushButton("Cancel")
+        button_layout.addWidget(self.confirm_button)
+        button_layout.addWidget(self.cancel_button)
+        layout.addLayout(button_layout)
+        
+        self.setLayout(layout)
+        
+        # Center the window
+        self.center_on_screen()
+        
+        # Connections
+        self.confirm_button.clicked.connect(self.confirm)
+        self.cancel_button.clicked.connect(self.close)
+    
+    def center_on_screen(self):
+        frame = self.frameGeometry()
+        center_point = self.screen().availableGeometry().center()
+        frame.moveCenter(center_point)
+        self.move(frame.topLeft())
+    
+    def confirm(self):
+        if hasattr(self.parent_widget, 'right_clicked'):
+            self.parent_widget.right_clicked.emit(("add stocks confirmed", {
+                'item_data': self.item_data,
+                'quantity': self.quantity_input.value(),  
+            }))
+        self.close()

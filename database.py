@@ -277,6 +277,7 @@ class Database:
             transactions.append(transaction)
 
         return transactions
+    
 
     def update_stock(self, inventory_id, quantity, transaction_type):
         """Updates stock quantity based on transaction type (sale or restock)."""
