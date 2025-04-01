@@ -105,6 +105,7 @@ class AddStockPopup(QWidget):
         self.setWindowTitle(f"Add Stock - {item_data['name']}")
         self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint)
         self.setFixedSize(300, 200)
+        self.setObjectName("AddStockPopup")
         
         self.item_data = item_data
         self.parent_widget = parent

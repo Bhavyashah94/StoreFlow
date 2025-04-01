@@ -210,3 +210,9 @@ QDialog#item_details_dialog {
     border: 1px solid #ccc;
     border-radius: 10px;
 }
+
+QWidget#AddStockPopup {
+    background-color: #f8f8f8;
+    color: #000000;
+      
+}
