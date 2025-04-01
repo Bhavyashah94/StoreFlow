@@ -1,11 +1,12 @@
 from PyQt6.QtWidgets import (QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFrame,
                             QLabel, QLineEdit, QFormLayout, QStackedWidget, QGridLayout, QComboBox,
-                            QProgressDialog, QMessageBox, QScrollArea, QSizePolicy)
+                            QProgressDialog, QMessageBox,QDialog, QScrollArea, QSizePolicy)
 from PyQt6.QtCore import Qt, QRegularExpression, QThread, pyqtSlot, pyqtSignal
 from PyQt6.QtGui import QRegularExpressionValidator
 from database import Database
 from inventoryItemWidget import InventoryItemWidget
-
+from PyQt6.QtSql import QSqlQuery
+from datetime import datetime
 
 
 class AddNewInventoryPanel(QWidget):
@@ -352,6 +353,66 @@ class EditInventoryPanel(QWidget):
         self.cost_price_input.setText(str(item_data["cost_price"]))
         self.opening_stock_input.setText(str(item_data["stock"]))
         self.reorder_point_input.setText(str(item_data["reorder_point"]))
+     
+    def get_item_details_with_transactions(self, inventory_name):
+     """Fetches item details along with its transaction history, sorted by timestamp."""
+     # Fetch inventory item details by name
+     query = QSqlQuery()
+     query.prepare("""
+        SELECT id, name, gtin, unit_of_measurement, selling_price, mrp, cost_price, stock, reorder_point 
+        FROM inventory 
+        WHERE name = :inventory_name
+     """)
+     query.bindValue(":inventory_name", inventory_name)
+
+     if not query.exec() or not query.next():
+        print(f"❌ Inventory item '{inventory_name}' not found.")
+        return None
+
+     # Store inventory details in a dictionary
+     item_details = {
+        "id": query.value(0),
+        "name": query.value(1),
+        "gtin": query.value(2),
+        "unit": query.value(3),
+        "selling_price": query.value(4),
+        "mrp": query.value(5),
+        "cost_price": query.value(6),
+        "stock": query.value(7),
+        "reorder_point": query.value(8),
+     }
+
+     # Fetch all transactions for this item, sorted by timestamp
+     transaction_query = QSqlQuery()
+     transaction_query.prepare("""
+        SELECT transaction_type, quantity, price, discount, payment_mode, cash_received, return_amount, reference_no, timestamp 
+        FROM transactions 
+        WHERE inventory_name = :inventory_name 
+        ORDER BY timestamp DESC
+     """)
+     transaction_query.bindValue(":inventory_name", inventory_name)
+
+     transaction_query.exec()
+
+     transactions = []
+     while transaction_query.next():
+        transaction = {
+            "transaction_type": transaction_query.value(0),
+            "quantity": transaction_query.value(1),
+            "price": transaction_query.value(2),
+            "discount": transaction_query.value(3),
+            "payment_mode": transaction_query.value(4),
+            "cash_received": transaction_query.value(5),
+            "return_amount": transaction_query.value(6),
+            "reference_no": transaction_query.value(7),
+            "timestamp": transaction_query.value(8),
+        }
+        transactions.append(transaction)
+
+     # Combine item details and transactions into a result dictionary
+     item_details["transactions"] = transactions
+
+     return item_details
 
     def update_item_in_database(self):
         """Updates the item details in the database with new values and logs the changes."""
@@ -431,7 +492,8 @@ class EditInventoryPanel(QWidget):
             self.item_updated.emit()
         else:
             QMessageBox.critical(self, "Database Error", "Failed to update the item. Please try again!")
-
+        
+    
 
 
 class InventoryPanel(QWidget):
@@ -543,34 +605,152 @@ class InventoryPanel(QWidget):
 
         # Add new items
         for item in items:
-            item_widget = InventoryItemWidget(item)
+            item_widget = InventoryItemWidget(item, self)
             item_widget.right_clicked.connect(self.handle_right_click)
             item_widget.double_clicked.connect(self.handle_double_click)
             self.inventory_items_layout.addWidget(item_widget)
 
 
     def handle_right_click(self, action_data):
-        """Handles right-click actions."""
-        action, item_data = action_data
+     """Handles right-click actions."""
+     action, item_data = action_data
 
-        if action == "edit":
-            #QMessageBox.information(self, "Edit Item", f"Editing {item_data['name']}")
-            # Open edit form here
-            self.show_edit_panel(item_data)
-        elif action == "delete":
-            confirm = QMessageBox.question(self, "Delete Item", f"Are you sure you want to delete {item_data['name']}?")
-            if confirm == QMessageBox.StandardButton.Yes:
-                db = Database()
-                db.delete_item(item_data['name'])
-                self.load_inventory_items()  # Reload after deletion
-        elif action == "details":
-            QMessageBox.information(self, "Item Details", f"Showing details for {item_data['name']}")
+     if action == "edit":
+        # Open the edit form
+        self.show_edit_panel(item_data)
+
+     elif action == "delete":
+        confirm = QMessageBox.question(self, "Delete Item", f"Are you sure you want to delete {item_data['name']}?")
+        if confirm == QMessageBox.StandardButton.Yes:
+            db = Database()
+            db.delete_item(item_data['name'])
+            self.load_inventory_items()  # Reload inventory items after deletion
+
+     elif action == "details":
+        # Fetch item details and transaction history
+        item_name = item_data['name']
+        item_details = self.get_item_details_with_transactions(item_name)
+
+        if item_details:
+            # Format item details for display (static part)
+            details_text = f"""
+            <b>Item Details:</b><br>
+            Name: {item_details['name']}<br>
+            GTIN: {item_details['gtin']}<br>
+            Unit: {item_details['unit']}<br>
+            Selling Price: ₹{item_details['selling_price']}<br>
+            MRP: ₹{item_details['mrp']}<br>
+            Cost Price: ₹{item_details['cost_price']}<br>
+            Stock: {item_details['stock']}<br>
+            Reorder Point: {item_details['reorder_point']}<br><br>
+            <b>Transaction History:</b>
+            """
+
+            # Create scrollable area for transaction history
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            content_widget = QWidget()
+            layout = QVBoxLayout(content_widget)
+
+            for transaction in item_details['transactions'][:5]:
+                timestamp = transaction['timestamp']
+                formatted_date = timestamp.toString("dd/MM/yyyy")
+                formatted_time = timestamp.toString("HH:mm:ss")
+
+                transaction_label = QLabel(f"""
+                <b>{formatted_date} {formatted_time}</b>: {transaction['transaction_type'].capitalize()}<br>
+                Quantity: {transaction['quantity']}, Price: ₹{transaction['price']}<br>
+                Payment Mode: {transaction['payment_mode']}, Discount: ₹{transaction['discount']}<br>
+                Cash Received: ₹{transaction['cash_received']}, Return: ₹{transaction['return_amount']}<br><br>
+                """)
+                layout.addWidget(transaction_label)
+
+            content_widget.setLayout(layout)
+            scroll_area.setWidget(content_widget)
+
+            # Show item details along with the scrollable transaction history in a dialog
+            details_dialog = QDialog(self)
+            details_dialog.setWindowTitle("Item Details")
+            details_dialog.setObjectName("item_details_dialog")
+            dialog_layout = QVBoxLayout(details_dialog)
+
+            # Static item details as a QLabel (non-scrollable part)
+            details_label = QLabel(details_text)
+            details_label.setTextFormat(Qt.TextFormat.RichText)
+            dialog_layout.addWidget(details_label)
+
+            # Scrollable area added below the static details
+            dialog_layout.addWidget(scroll_area)
+
+            details_dialog.resize(500, 400)
+            details_dialog.exec()
+        else:
+            QMessageBox.warning(self, "Item Not Found", f"No details found for {item_name}.")
+
+    def get_item_details_with_transactions(self, inventory_name):
+     """Fetches item details along with its transaction history, sorted by timestamp."""
+
+     # Fetch inventory item details by name
+     query = QSqlQuery()
+     query.prepare("""
+        SELECT id, name, gtin, unit_of_measurement, selling_price, mrp, cost_price, stock, reorder_point 
+        FROM inventory 
+        WHERE name = :inventory_name
+     """)
+     query.bindValue(":inventory_name", inventory_name)
+
+     if not query.exec() or not query.next():
+        print(f"❌ Inventory item '{inventory_name}' not found.")
+        return None
+
+     # Store inventory details in a dictionary
+     item_details = {
+        "id": query.value(0),
+        "name": query.value(1),
+        "gtin": query.value(2),
+        "unit": query.value(3),
+        "selling_price": query.value(4),
+        "mrp": query.value(5),
+        "cost_price": query.value(6),
+        "stock": query.value(7),
+        "reorder_point": query.value(8),
+     }
+
+     # Fetch all transactions for this item, sorted by timestamp
+     transaction_query = QSqlQuery()
+     transaction_query.prepare("""
+        SELECT transaction_type, quantity, price, discount, payment_mode, cash_received, return_amount, reference_no, timestamp 
+        FROM transactions 
+        WHERE inventory_name = :inventory_name 
+        ORDER BY timestamp DESC
+     """)
+     transaction_query.bindValue(":inventory_name", inventory_name)
+     transaction_query.exec()
+
+     # Store transactions in a list
+     transactions = []
+     while transaction_query.next():
+        transaction = {
+            "transaction_type": transaction_query.value(0),
+            "quantity": transaction_query.value(1),
+            "price": transaction_query.value(2),
+            "discount": transaction_query.value(3),
+            "payment_mode": transaction_query.value(4),
+            "cash_received": transaction_query.value(5),
+            "return_amount": transaction_query.value(6),
+            "reference_no": transaction_query.value(7),
+            "timestamp": transaction_query.value(8),  # QDateTime object
+        }
+        transactions.append(transaction)
+
+      # Combine item details and transactions into a result dictionary
+     item_details["transactions"] = transactions
+
+     return item_details
 
     def handle_double_click(self, item_data):
         """Handles double-click actions."""
         QMessageBox.information(self, "Item Selected", f"You double-clicked on {item_data['name']}")
-
-
 
     def search_inventory(self):
         """Filters inventory based on user input."""

@@ -38,6 +38,8 @@ class CartTable(QWidget):
 
         self.layout.addWidget(self.table)
 
+        self.table.cellDoubleClicked.connect(self.cart_item_manipulation)
+
         # Add first row with QLineEdit
         self.add_empty_row()
 
@@ -50,7 +52,7 @@ class CartTable(QWidget):
             # Item already exists, update quantity and total price
             row = self.cart_items[item_name]["row"]
             new_quantity = self.cart_items[item_name]["quantity"] + 1
-            new_total = new_quantity * price
+            new_total = new_quantity * (price - self.cart_items[item_name]["discount"])
 
             # Update UI table
             self.table.item(row, 2).setText(str(new_quantity))  # Quantity
@@ -65,7 +67,7 @@ class CartTable(QWidget):
             # Add new row for new item
             row_count = self.table.rowCount()
 
-            self.table.cellDoubleClicked.connect(self.cart_item_manipulation)
+            
 
             # If the last row has QLineEdit, remove it
             name_edit = self.table.cellWidget(row_count - 1, 1)
@@ -113,8 +115,7 @@ class CartTable(QWidget):
             return
 
     def cart_item_manipulation(self, row, column):
-
-        self.store_ui.toggle_overlay(True)  # Show overlay
+        self.store_ui.toggle_overlay(True)
         self.store_ui.overlayClicked.connect(self.close_item_manipulation_popup)
 
         if row >= 0 and row != self.table.rowCount()-1:
@@ -168,8 +169,8 @@ class CartTable(QWidget):
         rate = QLineEdit(rate)
         rate.setPlaceholderText("Enter Rate.")
         
-        discount = QLineEdit(discount)
-        discount.setPlaceholderText("Enter Discount.")
+        discount1 = QLineEdit(discount)
+        discount1.setPlaceholderText("Enter Discount.")
 
         grid_layout.addWidget(QLabel("Quantity: "), 0, 0)
         grid_layout.addWidget(quantity_input, 0, 1)
@@ -178,7 +179,7 @@ class CartTable(QWidget):
         grid_layout.addWidget(rate, 1, 1)
         
         grid_layout.addWidget(QLabel("Discount: "), 2, 0)
-        grid_layout.addWidget(discount, 2, 1)
+        grid_layout.addWidget(discount1, 2, 1)
 
         button_layout = QHBoxLayout()
         remove_item_from_cart = QPushButton(text = "Remove from cart")
@@ -188,8 +189,7 @@ class CartTable(QWidget):
         discard_changes.clicked.connect(self.close_item_manipulation_popup)
 
         apply_changes = QPushButton(text = "Apply")
-        apply_changes.clicked.connect(lambda: self.update_cart_item(row, quantity_input.text(), rate.text(), discount.text()))
-
+        apply_changes.clicked.connect(lambda: self.update_cart_item(row, quantity_input.text(), rate.text(), discount1.text()))
         button_layout.addWidget(remove_item_from_cart)
         button_layout.addWidget(discard_changes)
         button_layout.addWidget(apply_changes)
@@ -216,28 +216,45 @@ class CartTable(QWidget):
         self.item_manipulation_popup.setLayout(popup_layout)
         self.item_manipulation_popup.setParent(self.store_ui)
         self.item_manipulation_popup.show()
-        self.item_manipulation_popup.raise_()        
+      
        
     def update_cart_item(self, row, quantity, price, discount):
+        print(f"Discount: {discount}")
+
         if float(discount) > float(price):
             QMessageBox.warning(self, "Invalid Discount", "Discount cannot exceed the price!")
             return
 
-        item_name = self.table.item(row, 0).text()  # Get item name
+        item_cell = self.table.item(row, 1)
+        if item_cell is None:
+            QMessageBox.warning(self, "Error", "Invalid item selection!")
+            return
 
-        if item_name in self.cart_items:
-            self.cart_items[item_name]["quantity"] = float(quantity)
-            self.cart_items[item_name]["price"] = float(price)
-            self.cart_items[item_name]["discount"] = float(discount)
-            self.cart_items[item_name]["total"] = float(quantity) * (float(price) - float(discount))
+        item_name = item_cell.text().strip()
+        
+        if item_name not in self.cart_items:
+            print(f"Item '{item_name}' not found in cart_items!")
+            print("Current cart_items:", self.cart_items)
+            return
 
-        self.table.item(row, 2).setText(quantity)
-        self.table.item(row, 3).setText(price)
-        self.table.item(row, 4).setText(discount)
+        # Update cart dictionary
+        self.cart_items[item_name]["quantity"] = float(quantity)
+        self.cart_items[item_name]["price"] = float(price)
+        self.cart_items[item_name]["discount"] = float(discount)
+        self.cart_items[item_name]["total"] = float(quantity) * (float(price) - float(discount))
+
+        # Update UI
+        self.table.item(row, 2).setText(str(quantity))
+        self.table.item(row, 3).setText(str(price))
+        self.table.item(row, 4).setText(str(discount))
         self.table.item(row, 5).setText(str(float(quantity) * (float(price) - float(discount))))
-        self.parent.update_summary()
 
+        # Debugging
+        print("Updated cart_items:", self.cart_items)
+
+        self.parent.update_summary()
         self.close_item_manipulation_popup()
+
 
                                                                   
     def update_row_numbers(self):
@@ -315,12 +332,12 @@ class CartTable(QWidget):
             self.store_ui.toggle_overlay(False)  # Hide overlay
 
     def close_item_manipulation_popup(self):
-        """Closes the item_manipulation_popup and hides the overlay."""
         if hasattr(self, "item_manipulation_popup"):
+            print("Closing item manipulation popup")
             self.item_manipulation_popup.close()
-            self.item_manipulation_popup.lower()
             del self.item_manipulation_popup
-            self.store_ui.toggle_overlay(False)  # Hide overlay
+            self.store_ui.toggle_overlay(False)
+
 
     def remove_selected_item(self):
         """Removes the selected row and updates numbering."""
