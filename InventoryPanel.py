@@ -605,7 +605,7 @@ class InventoryPanel(QWidget):
 
         # Add new items
         for item in items:
-            item_widget = InventoryItemWidget(item)
+            item_widget = InventoryItemWidget(item, self)
             item_widget.right_clicked.connect(self.handle_right_click)
             item_widget.double_clicked.connect(self.handle_double_click)
             self.inventory_items_layout.addWidget(item_widget)
@@ -751,8 +751,6 @@ class InventoryPanel(QWidget):
     def handle_double_click(self, item_data):
         """Handles double-click actions."""
         QMessageBox.information(self, "Item Selected", f"You double-clicked on {item_data['name']}")
-
-
 
     def search_inventory(self):
         """Filters inventory based on user input."""

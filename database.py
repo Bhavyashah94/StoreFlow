@@ -277,29 +277,20 @@ class Database:
             transactions.append(transaction)
 
         return transactions
-    
 
-    def update_stock(self, inventory_id, quantity, transaction_type):
-        """Updates stock quantity based on transaction type (sale or restock)."""
+    def update_stock(self, inventory_name, quantity) -> bool:
+        """Updates stock quantity by adding the given quantity."""
         query = QSqlQuery()
 
-        # Determine stock adjustment (subtract for sale, add for restock)
-        if transaction_type == "sale":
-            query.prepare("UPDATE inventory SET stock = stock - :quantity WHERE id = :inventory_id")
-        elif transaction_type == "restock":
-            query.prepare("UPDATE inventory SET stock = stock + :quantity WHERE id = :inventory_id")
-        else:
-            print(f"⚠️ Unknown transaction type: {transaction_type}")
-            return False
-
+        query.prepare("UPDATE inventory SET stock = stock + :quantity WHERE name = :inventory_name")
         query.bindValue(":quantity", quantity)
-        query.bindValue(":inventory_id", inventory_id)
+        query.bindValue(":inventory_name", inventory_name)
 
         if not query.exec():
             print(f"❌ Stock update failed: {query.lastError().text()}")
             return False
 
-        print(f"✅ Stock updated for inventory ID {inventory_id}.")
+        print(f"✅ Stock updated for inventory name '{inventory_name}'.")
         return True
 
     def has_transactions(self, inventory_name: str) -> bool:

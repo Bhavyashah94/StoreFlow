@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (QLabel, QVBoxLayout, QMenu, QGridLayout, QFrame, QWidget,
-                            QSpinBox, QLineEdit, QPushButton, QHBoxLayout)
+                            QSpinBox, QLineEdit, QPushButton, QHBoxLayout, QMessageBox)
 from PyQt6.QtCore import Qt, pyqtSignal
 
 from database import Database
@@ -12,6 +12,7 @@ class InventoryItemWidget(QFrame):
             super().__init__(parent)
             self.item_data = item_data  # Store item details
             self.setObjectName("inventoryItem")
+            self.parent = parent
 
             # Top: Item Name
             self.name_label = QLabel(item_data['name'])
@@ -149,8 +150,11 @@ class AddStockPopup(QWidget):
     
     def confirm(self):
         if hasattr(self.parent_widget, 'right_clicked'):
-            self.parent_widget.right_clicked.emit(("add stocks confirmed", {
-                'item_data': self.item_data,
-                'quantity': self.quantity_input.value(),  
-            }))
+            db = Database()
+            quantity = self.quantity_input.value()
+            if db.update_stock(self.item_data['name'], quantity):
+                QMessageBox.information(self, "Success", f"Added {quantity} stocks to {self.item_data['name']}")
+                self.parent_widget.parent.load_inventory_items()
+            else:
+                QMessageBox.critical(self, "Error", "Failed to add stocks.")
         self.close()
