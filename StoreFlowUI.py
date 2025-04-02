@@ -5,6 +5,8 @@ import sys
 
 from cartpanel import CartPanel
 from InventoryPanel import InventoryPanel
+from TransactionsPanel import TransactionsPanel
+from database import Database
 
 class StoreFlowUI(QWidget):
     overlayClicked = pyqtSignal()  # Signal emitted when overlay is clicked
@@ -58,17 +60,18 @@ class StoreFlowUI(QWidget):
         # Create Panels
         self.cart_panel = CartPanel(self)
         self.inventory_panel = InventoryPanel(self)
-        self.sales_panel = QLabel("Sales Panel", self)
+        self.db = Database()
+        self.transactions_panel = TransactionsPanel(self.db)
         self.settings_panel = QLabel("Settings Panel", self)
 
         # Add panels to QStackedWidget
         self.panel_manager.addWidget(self.cart_panel)
         self.panel_manager.addWidget(self.inventory_panel)
-        self.panel_manager.addWidget(self.sales_panel)
+        self.panel_manager.addWidget(self.transactions_panel)
         self.panel_manager.addWidget(self.settings_panel)
 
         # Sidebar Buttons
-        button_names = [("Cart", 0), ("Inventory", 1), ("Sales", 2), ("Settings", 3)]
+        button_names = [("Cart", 0), ("Inventory", 1), ("Transactions", 2)]
         for name, index in button_names:
             btn = QPushButton(name)
             btn.setObjectName("sidebar_button")
