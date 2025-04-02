@@ -46,11 +46,7 @@ class CartPanel(QFrame):
         self.clear_cart_btn.setObjectName("clear_cart_btn")
         self.clear_cart_btn.clicked.connect(self.clearCart)
 
-        self.hold_cart_btn = QPushButton("Hold Cart")
-        self.hold_cart_btn.setObjectName("hold_cart_btn")
-
         self.button_layout.addWidget(self.clear_cart_btn)
-        self.button_layout.addWidget(self.hold_cart_btn)
         self.button_layout.addStretch()
 
         self.cart_layout.addWidget(self.button_frame)
