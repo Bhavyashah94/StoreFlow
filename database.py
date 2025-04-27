@@ -201,7 +201,7 @@ class Database:
 
         inventory_id = query.value(0)
 
-        if not self.update_stock(inventory_id, quantity, transaction_type):
+        if not self.update_stock(inventory_name, -quantity):
             return False  # Stock update failed
 
         query.prepare("""

@@ -134,13 +134,16 @@ class CartPanel(QFrame):
             
             if qty_item and price_item:
                 try:
-                    qty = int(qty_item.text())
+                    #print(f"Row {row}: {qty_item.text()}, {price_item.text()}, {discount_item.text()}")
+                    qty = int(float(qty_item.text()))
                     price = float(price_item.text())
                     discount = float(discount_item.text())
                     total_sub_price += price*qty
                     total_discount += discount*qty
                     total_price += qty * price - discount * qty
+                    #print(f"Item: {qty} * {price} - {discount} = {total_price}")
                 except ValueError:
+                    print("⚠️ Invalid data in cart table!")
                     continue
 
         self.sub_total.setText(str(total_sub_price))

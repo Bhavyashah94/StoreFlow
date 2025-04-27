@@ -168,6 +168,8 @@ class StoreFlowUI(QWidget):
                     return  # Cancel switch if user selects No
 
         # Proceed with panel switch
+        self.inventory_panel.load_inventory_items("")  # Refresh inventory panel
+        self.transactions_panel.load_transactions()
         self.panel_manager.setCurrentIndex(index)
         self.toggle_sidebar(force_close=True)
         self.top_bar_title.setText(f"StoreFlow: {name}")

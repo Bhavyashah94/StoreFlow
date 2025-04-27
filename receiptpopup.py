@@ -18,17 +18,9 @@ class ReceiptPopup(QDialog):
         self.receipt_label = QLabel(self.format_receipt_text())
         layout.addWidget(self.receipt_label)
         
-        self.email_input = QLineEdit()
-        self.email_input.setPlaceholderText("Enter email to send receipt")
-        layout.addWidget(self.email_input)
-        
         self.download_btn = QPushButton("Download PDF")
         self.download_btn.clicked.connect(self.download_receipt)
         layout.addWidget(self.download_btn)
-        
-        self.send_email_btn = QPushButton("Send Email")
-        self.send_email_btn.clicked.connect(self.send_email)
-        layout.addWidget(self.send_email_btn)
         
         self.setLayout(layout)
 
