@@ -16,7 +16,6 @@ class TransactionsPanel(QWidget):
         self.table = QTableWidget(0, 9)  
         self.table.setHorizontalHeaderLabels(["Item Name", "Transaction Type", "Time Stamp", "Payment Mode", "Reference No.", "Quantity",
                                                "Price", "Discount", "Total"])
-
         # Resizing Columns
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
