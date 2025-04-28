@@ -203,9 +203,11 @@ class CartPanel(QFrame):
         self.payment_title.setText(f"{method} Payment")
         self.payment_details.setText(f"Total: ₹{self.total.text()}")
 
-        self.payment_input.setPlaceholderText(
-            "Enter amount given" if method == "Cash" else "Enter reference number"
-        )
+        if method == "Cash":
+            self.payment_input.hide()
+        else:
+            self.payment_input.show()
+            self.payment_input.setPlaceholderText("Enter reference number")
 
         self.payment_popup.move(
             (self.width() - self.payment_popup.width()) // 2,
@@ -216,6 +218,7 @@ class CartPanel(QFrame):
         self.payment_popup.show()
         self.payment_popup.raise_()
 
+
     def close_payment_popup(self):
         """Hides the payment popup and overlay."""
         self.payment_popup.hide()
@@ -225,14 +228,22 @@ class CartPanel(QFrame):
 
     def process_payment(self):
         """Handles payment processing when the tender button is clicked."""
-        if not hasattr(self, "payment_input") or not self.payment_input:
-            print("❌ Payment input field is missing!")
-            return
+        if self.selected_payment_mode == "Cash":
+            # In Cash mode, no input is required
+            amount = self.total.text()  # Take the total as the cash amount
+        else:
+            if not hasattr(self, "payment_input") or not self.payment_input:
+                print("❌ Payment input field is missing!")
+                return
 
-        amount = self.payment_input.text().strip()
-        if not amount:
-            print("⚠️ Please enter an amount or reference number.")
-            return
+            amount = self.payment_input.text().strip()
+            if not amount:
+                print("⚠️ Please enter a reference number.")
+                return
+
+        # Now 'amount' is available for further processing
+        print(f"✅ Payment processed: {self.selected_payment_mode} - {amount}")
+        # You can continue to mark the order as paid, close popups, etc.
 
         try:
             amount_value = float(amount)

@@ -30,7 +30,7 @@ class TransactionsPanel(QWidget):
 
         self.table.setRowCount(0)
 
-        for trans in transactions:  # Trans people 🤭
+        for trans in transactions: 
             self.add_transaction(trans) 
 
     def add_transaction(self, transaction):
